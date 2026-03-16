@@ -152,3 +152,4 @@ Edit `types/index.ts` → `DAO_COINS` array. Use CoinGecko coin IDs (e.g. `"unis
 **Add email alerts**: Wire up [Resend](https://resend.com/) or [Loops](https://loops.so/) in a cron job (`/api/cron/alerts`).
 
 **Add CSV export**: Add a `/api/data/export` route that streams CSV from watchlist data (Pro only).
+# MoonMap
