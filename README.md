@@ -1,4 +1,4 @@
-# DAOScope — DAO Intelligence Platform
+# MoonMap — DAO Intelligence Platform
 
 A full-stack subscription SaaS for tracking crypto DAO tokens, governance, and news sentiment. Built with Next.js 14, Prisma, NextAuth v5, and Stripe.
 
