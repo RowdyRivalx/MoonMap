@@ -280,13 +280,23 @@ export default function TokenDetailClient({ token, history1d, history7d, history
             </div>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-              <div className="flex items-center gap-2 mb-2">
-                <img src={MOONSTER_IMG} alt="MoonMap" className="w-5 h-5 rounded-full object-cover"/>
-                <p className="text-xs text-zinc-500">Posts from Moonsters community on X</p>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <img src={MOONSTER_IMG} alt="MoonMap" className="w-5 h-5 rounded-full object-cover"/>
+                  <p className="text-xs text-zinc-500">Community discussion · Reddit &amp; crypto sources</p>
+                </div>
+                <a href={`https://x.com/search?q=%24${token.symbol?.toUpperCase()}+solana&src=typed_query&f=live`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
+                  style={{ color: 'rgba(113,113,122,0.7)', border: '1px solid rgba(63,63,70,0.5)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(113,113,122,0.7)')}>
+                  <Twitter size={10}/> X search
+                </a>
               </div>
               {socialPosts.length === 0 ? (
                 <div className="text-center py-4">
-                  <p className="text-sm text-zinc-500 mb-3">No community posts loaded</p>
+                  <p className="text-sm text-zinc-500 mb-3">No community posts found</p>
                   <a href={`https://x.com/search?q=%24${token.symbol?.toUpperCase()}&src=typed_query&f=live`}
                     target="_blank" rel="noopener noreferrer"
                     className="text-xs text-violet-400 hover:underline flex items-center gap-1 justify-center">
@@ -304,6 +314,9 @@ export default function TokenDetailClient({ token, history1d, history7d, history
                         <span className="text-xs text-zinc-500">{post.handle}</span>
                         <span className="text-xs text-zinc-600">·</span>
                         <span className="text-xs text-zinc-500"><span suppressHydrationWarning>{timeAgo(post.timestamp)}</span></span>
+                        {(post.likes || 0) > 0 && (
+                          <span className="text-xs text-zinc-600 ml-auto">▲ {post.likes}</span>
+                        )}
                       </div>
                       <p className="text-xs text-zinc-400 group-hover:text-zinc-300 leading-relaxed line-clamp-3">{post.content}</p>
                     </div>

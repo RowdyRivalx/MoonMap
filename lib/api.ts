@@ -455,19 +455,13 @@ export interface SocialPost {
   retweets?: number
 }
 
-// Try fetching an RSS feed via rss2json with a short timeout
-async function fetchRss2Json(rssUrl: string): Promise<{ feed: any; items: any[] } | null> {
+async function fetchWithTimeout(url: string, timeoutMs = 5000): Promise<Response | null> {
   try {
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 4000)
-    const res = await fetch(
-      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
-      { signal: controller.signal, next: { revalidate: 300 } }
-    )
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
     clearTimeout(timer)
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.status === 'ok' && data.items?.length ? data : null
+    return res.ok ? res : null
   } catch {
     return null
   }
@@ -475,87 +469,80 @@ async function fetchRss2Json(rssUrl: string): Promise<{ feed: any; items: any[] 
 
 export async function getMoonsterSocialPosts(tokenSymbol?: string): Promise<SocialPost[]> {
   const posts: SocialPost[] = []
+  const sym = tokenSymbol?.toUpperCase() || 'SOLANA'
 
-  // Strategy 1: RSSHub public instance — token-specific search (most relevant)
-  if (tokenSymbol) {
-    const sym = tokenSymbol.toUpperCase()
-    const rsshubSearchUrl = `https://rsshub.app/twitter/keyword/${encodeURIComponent(`$${sym}`)}`
-    const data = await fetchRss2Json(rsshubSearchUrl)
-    if (data) {
-      const items = data.items.slice(0, 4).map((item: any, i: number) => {
-        // RSSHub Twitter items: author in item.author or item.creator
-        const handle = item.author || item.creator || `$${sym}`
-        return {
-          id: `rsshub-search-${i}`,
-          author: handle.replace('@', ''),
-          handle: handle.startsWith('@') ? handle : `@${handle}`,
-          content: (item.title || item.description || '').replace(/<[^>]*>/g, '').trim(),
-          timestamp: item.pubDate || new Date().toISOString(),
-          url: item.link || `https://x.com/search?q=%24${sym}&f=live`,
-          avatar: `https://unavatar.io/twitter/${handle.replace('@', '')}`,
-          likes: 0,
-          retweets: 0,
-        }
-      })
-      posts.push(...items)
-    }
-  }
-
-  // Strategy 2: RSSHub for community accounts (if search didn't get enough)
-  const nitterInstances = [
-    'https://nitter.poast.org',
-    'https://nitter.privacydev.net',
-    'https://nitter.1d4.us',
+  // ── Strategy 1: Reddit public JSON API (reliable, no auth required) ──────────
+  // Reddit returns community discussion posts about the token
+  const redditQueries = [
+    `https://www.reddit.com/search.json?q=%24${sym}+solana&sort=new&limit=4&t=week&type=link`,
+    `https://www.reddit.com/r/solana/search.json?q=${sym}&sort=new&limit=3&t=week&restrict_sr=1`,
   ]
 
-  if (posts.length < 4) {
-    for (const account of MOONSTER_ACCOUNTS.slice(0, 2)) {
-      if (posts.length >= 6) break
+  for (const url of redditQueries) {
+    if (posts.length >= 5) break
+    try {
+      const res = await fetchWithTimeout(url)
+      if (!res) continue
+      const data = await res.json()
+      const children = data?.data?.children || []
+      const redditPosts = children
+        .filter((c: any) => c.kind === 't3' && c.data?.title)
+        .slice(0, 3)
+        .map((c: any, i: number) => {
+          const p = c.data
+          return {
+            id: `reddit-${p.id || i}`,
+            author: p.author || 'Redditor',
+            handle: `r/${p.subreddit || 'solana'}`,
+            content: p.title + (p.selftext ? ' — ' + p.selftext.slice(0, 120).replace(/\n/g, ' ') : ''),
+            timestamp: new Date((p.created_utc || 0) * 1000).toISOString(),
+            url: p.url?.startsWith('http') ? p.url : `https://reddit.com${p.permalink || ''}`,
+            avatar: `https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png`,
+            likes: p.score || 0,
+            retweets: p.num_comments || 0,
+          }
+        })
+      posts.push(...redditPosts)
+    } catch { continue }
+  }
 
-      // Try RSSHub account feed first
-      const rsshubUrl = `https://rsshub.app/twitter/user/${account}`
-      let data = await fetchRss2Json(rsshubUrl)
-
-      // Fall back through Nitter instances
-      if (!data) {
-        for (const nitter of nitterInstances) {
-          data = await fetchRss2Json(`${nitter}/${account}/rss`)
-          if (data) break
-        }
+  // ── Strategy 2: CryptoPanic social posts (may include Twitter-sourced items) ──
+  const cpKey = process.env.CRYPTOPANIC_API_KEY
+  if (posts.length < 4 && cpKey && tokenSymbol) {
+    try {
+      const res = await fetchWithTimeout(
+        `${CRYPTOPANIC_BASE}/posts/?auth_token=${cpKey}&currencies=${sym}&kind=media&filter=hot`
+      )
+      if (res) {
+        const data = await res.json()
+        const items = (data.results || []).slice(0, 3).map((item: any, i: number) => ({
+          id: `cp-${item.id || i}`,
+          author: item.source?.title || 'Crypto Community',
+          handle: item.source?.domain ? `@${item.source.domain.replace(/\.(com|io|net|org)$/, '')}` : '@cryptopanic',
+          content: item.title || '',
+          timestamp: item.published_at || new Date().toISOString(),
+          url: item.url || `https://cryptopanic.com`,
+          avatar: `https://www.google.com/s2/favicons?domain=${item.source?.domain || 'cryptopanic.com'}&sz=64`,
+          likes: item.votes?.positive || 0,
+          retweets: 0,
+        }))
+        posts.push(...items)
       }
-
-      if (!data) continue
-
-      const accountPosts = data.items.slice(0, 2).map((item: any, i: number) => ({
-        id: `${account}-${i}`,
-        author: data.feed?.title?.replace('Twitter / ', '') || account,
-        handle: `@${account}`,
-        content: (item.title || '').replace(/<[^>]*>/g, '').trim(),
-        timestamp: item.pubDate || new Date().toISOString(),
-        url: item.link?.replace(/^https?:\/\/nitter\.[^/]+/, 'https://x.com') || `https://x.com/${account}`,
-        avatar: `https://unavatar.io/twitter/${account}`,
-        likes: 0,
-        retweets: 0,
-      }))
-      posts.push(...accountPosts)
-    }
+    } catch { /* ignore */ }
   }
 
   if (posts.length > 0) return posts.slice(0, 6)
 
-  // Strategy 3: Fallback — placeholder linking to live X search
-  if (tokenSymbol) {
-    return [{
-      id: 'fallback-1',
-      author: 'Moonsters Community',
-      handle: '@moonsters_io',
-      content: `Join the $${tokenSymbol.toUpperCase()} discussion on X — see what the Moonsters community is saying right now. 🌙`,
-      timestamp: new Date().toISOString(),
-      url: `https://x.com/search?q=%24${tokenSymbol.toUpperCase()}&src=typed_query&f=live`,
-      avatar: 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54',
-    }]
-  }
-  return []
+  // ── Strategy 3: Fallback placeholder with live X search link ─────────────────
+  return [{
+    id: 'fallback-1',
+    author: 'Moonsters Community',
+    handle: '@moonsters_io',
+    content: `See the latest $${sym} discussion — follow Moonsters on X for community updates, governance news, and DAO intel. 🌙`,
+    timestamp: new Date().toISOString(),
+    url: `https://x.com/search?q=%24${sym}+solana&src=typed_query&f=live`,
+    avatar: 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54',
+  }]
 }
 
 // ─── MROCKS Token (Solana SPL) ────────────────────────────────────────────────
