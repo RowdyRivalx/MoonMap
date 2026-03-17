@@ -1,13 +1,22 @@
-// middleware.ts
-// NOTE: withAuth middleware requires NEXTAUTH_SECRET to be set in Vercel environment variables.
-// Once NEXTAUTH_SECRET is configured in the Vercel dashboard, restore the withAuth block below.
+// middleware.ts — CIPHER: edge route protection
+import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
-export function middleware(_req: NextRequest) {
-  return NextResponse.next()
+export default withAuth(
+  function middleware(_req) {
+    return NextResponse.next()
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
+  }
+)
+
+export const config = {
+  matcher: [
+    '/dashboard/:path*',
+    '/api/data/:path*',
+    '/api/gallery',
+  ],
 }
-
-// Intentionally empty matcher — re-enable after setting NEXTAUTH_SECRET in Vercel env vars:
-// matcher: ['/dashboard/:path*', '/api/data/:path*', '/api/gallery']
-export const config = { matcher: [] }
