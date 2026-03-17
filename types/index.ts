@@ -57,13 +57,11 @@ export interface PriceHistory {
   price: number
 }
 
-export type SubscriptionTier = 'free' | 'pro'
+export type SubscriptionTier = 'free' | 'tier1' | 'tier2' | 'tier3'
 
 export interface UserSubscription {
   tier: SubscriptionTier
   status: string
-  currentPeriodEnd?: Date
-  cancelAtPeriodEnd?: boolean
 }
 
 export const DAO_COINS = [
