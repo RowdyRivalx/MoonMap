@@ -1,14 +1,15 @@
 // app/api/data/daos/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { getDAOTokens, getDAONews, calculateSentiment } from '@/lib/api'
-import { getUserSubscription } from '@/lib/stripe'
+import { getUserSubscription } from '@/lib/subscription'
 import { db } from '@/lib/db'
 import { DAO_COINS, FREE_TIER_LIMIT } from '@/types'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
