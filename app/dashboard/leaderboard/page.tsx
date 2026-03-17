@@ -19,7 +19,7 @@ export default async function LeaderboardPage() {
       nftId: true,
       lastSeen: true,
       createdAt: true,
-      _count: { select: { watchlistItems: true } },
+      _count: { select: { watchlist: true } },
     },
     orderBy: [
       { tier: 'desc' },
@@ -36,7 +36,7 @@ export default async function LeaderboardPage() {
         ...u,
         lastSeen: u.lastSeen?.toISOString() || null,
         createdAt: u.createdAt.toISOString(),
-        watchlistCount: u._count.watchlistItems,
+        watchlistCount: u._count.watchlist,
         isCurrentUser: u.id === currentUserId,
       }))}
       currentUserId={currentUserId}
