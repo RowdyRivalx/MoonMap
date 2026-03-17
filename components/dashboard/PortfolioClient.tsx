@@ -108,35 +108,39 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="absolute inset-0 rounded-xl blur-lg" style={{ background: 'rgba(124,58,237,0.3)' }} />
-            <img src={MOONSTER_IMG} alt="" className="relative w-10 h-10 rounded-xl object-cover" style={{ border: '1.5px solid rgba(139,92,246,0.35)' }} />
+            <div className="absolute inset-0 rounded-xl blur-lg" style={{ background: 'rgba(124,58,237,0.35)' }} />
+            <img src={MOONSTER_IMG} alt="" className="relative w-10 h-10 rounded-xl object-cover" style={{ border: '1.5px solid rgba(139,92,246,0.4)' }} />
           </div>
           <div>
             <h1 className="text-xl font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>Portfolio Tracker</h1>
             <p className="text-xs" style={{ color: 'rgba(113,113,122,0.7)', fontFamily: 'Space Mono, monospace' }}>
-              {wallet.slice(0,4)}…{wallet.slice(-4)} · {detectedCount > 0 ? `${detectedCount} tokens detected from wallet` : 'Enter holdings to track P&L'}
+              {wallet.slice(0,4)}…{wallet.slice(-4)} &middot; {detectedCount > 0 ? `${detectedCount} tokens detected from wallet` : 'Enter holdings to track P&L'}
             </p>
           </div>
         </div>
-        <button onClick={() => router.refresh()} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: 'rgba(167,139,250,0.8)' }}>
+        <button onClick={() => router.refresh()}
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all hover:-translate-y-0.5"
+          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(139,92,246,0.22)', color: 'rgba(167,139,250,0.8)' }}>
           <RefreshCw size={11} /> Refresh wallet
         </button>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary stat cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Portfolio Value', value: formatCurrency(total), icon: DollarSign, color: '#a78bfa' },
-          { label: '24h Change', value: formatPercent(dayChange), icon: dayChange >= 0 ? TrendingUp : TrendingDown, color: dayChange >= 0 ? '#34d399' : '#f87171' },
-          { label: 'NFTs Held', value: `${nfts.length} Moonster${nfts.length !== 1 ? 's' : ''}`, icon: PieChart, color: '#f59e0b' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card p-4" style={{ borderColor: 'rgba(139,92,246,0.12)' }}>
+          { label: 'Portfolio Value', value: formatCurrency(total), icon: DollarSign, color: '#a78bfa', glow: 'rgba(139,92,246,0.2)' },
+          { label: '24h Change', value: formatPercent(dayChange), icon: dayChange >= 0 ? TrendingUp : TrendingDown, color: dayChange >= 0 ? '#34d399' : '#f87171', glow: dayChange >= 0 ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)' },
+          { label: 'NFTs Held', value: `${nfts.length} Moonster${nfts.length !== 1 ? 's' : ''}`, icon: PieChart, color: '#f59e0b', glow: 'rgba(245,158,11,0.2)' },
+        ].map(({ label, value, icon: Icon, color, glow }) => (
+          <div key={label} className="stat-card p-4" style={{ borderColor: `${color}22` }}>
             <div className="flex items-center gap-2 mb-2">
-              <Icon size={14} style={{ color }} />
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+                style={{ background: `${color}18`, border: `1px solid ${color}33` }}>
+                <Icon size={12} style={{ color }} />
+              </div>
               <p className="text-xs" style={{ color: 'rgba(113,113,122,0.7)', fontFamily: 'Space Mono, monospace' }}>{label}</p>
             </div>
-            <p className="text-xl font-black" style={{ color, fontFamily: 'Syne, sans-serif' }}>{value}</p>
+            <p className="text-xl font-black" style={{ color, fontFamily: 'Syne, sans-serif', textShadow: `0 0 20px ${glow}` }}>{value}</p>
           </div>
         ))}
       </div>
@@ -358,7 +362,7 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
             {nfts.map(nft => (
-              <div key={nft.id} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${TIER_COLORS[nft.tier] || '#71717a'}33`, background: 'rgba(10,5,25,0.6)' }}>
+              <div key={nft.id} className="rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-1" style={{ border: `1px solid ${TIER_COLORS[nft.tier] || '#71717a'}44`, background: 'rgba(10,5,25,0.75)', boxShadow: `0 0 16px ${TIER_COLORS[nft.tier] || '#71717a'}18` }}>
                 <div className="aspect-square relative">
                   <img
                     src={nft.image || MOONSTER_IMG}

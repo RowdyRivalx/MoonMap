@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, Trash2, TrendingUp, TrendingDown, Plus, Search } from 'lucide-react'
+import { Star, Trash2, TrendingUp, TrendingDown, Plus, Search, BarChart2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatPercent, priceChangeColor } from '@/lib/utils'
 import type { DAOToken } from '@/types'
@@ -22,6 +22,36 @@ interface Props {
   suggestedTokens: DAOToken[]
   subscription: { tier: TierKey | string }
   features: TierFeatures
+}
+
+// Mini horizontal bar sparkline showing distribution of gainers vs losers
+function PerformanceBar({ tokens }: { tokens: DAOToken[] }) {
+  const total = tokens.length
+  if (total === 0) return null
+  const gainers = tokens.filter(t => (t.price_change_percentage_24h || 0) > 0).length
+  const losers = tokens.filter(t => (t.price_change_percentage_24h || 0) < 0).length
+  const neutral = total - gainers - losers
+  const gPct = Math.round((gainers / total) * 100)
+  const lPct = Math.round((losers / total) * 100)
+  const nPct = 100 - gPct - lPct
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between text-[10px] font-mono mb-1.5" style={{ color: 'rgba(113,113,122,0.7)' }}>
+        <span className="text-emerald-400">{gainers} up</span>
+        {neutral > 0 && <span className="text-zinc-500">{neutral} flat</span>}
+        <span className="text-red-400">{losers} down</span>
+      </div>
+      <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
+        {gPct > 0 && <div className="rounded-l-full" style={{ width: `${gPct}%`, background: 'rgba(16,185,129,0.7)' }} />}
+        {nPct > 0 && <div style={{ width: `${nPct}%`, background: 'rgba(113,113,122,0.3)' }} />}
+        {lPct > 0 && <div className="rounded-r-full" style={{ width: `${lPct}%`, background: 'rgba(239,68,68,0.7)' }} />}
+      </div>
+      <div className="flex items-center justify-between text-[10px] font-mono mt-1" style={{ color: 'rgba(113,113,122,0.5)' }}>
+        <span>{gPct}%</span>
+        <span>{lPct}%</span>
+      </div>
+    </div>
+  )
 }
 
 export default function WatchlistClient({ watchedTokens, watchlistItems, suggestedTokens, subscription, features }: Props) {
@@ -67,7 +97,6 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
   }
 
   async function addToWatchlist(token: DAOToken) {
-    // Save locally first so the UI updates immediately regardless of DB state
     localWatchlistAdd({ coinId: token.id, coinName: token.name, coinSymbol: token.symbol })
     const newItem: WatchlistItem = { id: `local-${token.id}`, coinId: token.id, coinName: token.name, coinSymbol: token.symbol, addedAt: new Date().toISOString() }
     setItems(prev => [...prev, newItem])
@@ -80,10 +109,8 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
     })
     if (res.ok) {
       const { item } = await res.json()
-      // Replace the local placeholder item id with the real DB id
       setItems(prev => prev.map(i => i.coinId === token.id ? { ...i, id: item.id } : i))
     } else if (res.status !== 503) {
-      // Real error (not just DB unavailable) — roll back
       const { error } = await res.json()
       localWatchlistRemove(token.id)
       setItems(prev => prev.filter(i => i.coinId !== token.id))
@@ -92,6 +119,19 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
       alert(error)
     }
   }
+
+  // Portfolio value summary
+  const tokensWithPrice = watched.filter(t => t.current_price > 0)
+  const totalMarketCap = watched.reduce((sum, t) => sum + (t.market_cap || 0), 0)
+  const avgChange24h = tokensWithPrice.length > 0
+    ? tokensWithPrice.reduce((sum, t) => sum + (t.price_change_percentage_24h || 0), 0) / tokensWithPrice.length
+    : 0
+  const avgChange7d = tokensWithPrice.length > 0
+    ? tokensWithPrice.reduce((sum, t) => sum + (t.price_change_percentage_7d_in_currency || 0), 0) / tokensWithPrice.length
+    : 0
+  const bestPerformer = tokensWithPrice.length > 0
+    ? tokensWithPrice.reduce((best, t) => (t.price_change_percentage_24h || 0) > (best.price_change_percentage_24h || 0) ? t : best, tokensWithPrice[0])
+    : null
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -106,6 +146,57 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
           <Plus size={14} /> Add tokens
         </Link>
       </div>
+
+      {/* Portfolio summary banner */}
+      {watched.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="col-span-2 rounded-xl p-4"
+            style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart2 size={13} className="text-violet-400" />
+              <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Watchlist Performance</p>
+            </div>
+            <div className="flex items-end gap-3">
+              <div>
+                <p className="text-[10px] text-zinc-500 mb-0.5">Avg 24h</p>
+                <p className={`text-xl font-bold ${avgChange24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatPercent(avgChange24h)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 mb-0.5">Avg 7d</p>
+                <p className={`text-xl font-bold ${avgChange7d >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatPercent(avgChange7d)}
+                </p>
+              </div>
+            </div>
+            <PerformanceBar tokens={watched} />
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: 'rgba(12,6,28,0.7)', border: '1px solid rgba(139,92,246,0.12)' }}>
+            <p className="text-[10px] font-mono text-zinc-500 mb-1 uppercase tracking-wider">Combined Mkt Cap</p>
+            <p className="text-lg font-bold text-white">{formatCurrency(totalMarketCap)}</p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">{watched.length} tokens</p>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: 'rgba(12,6,28,0.7)', border: '1px solid rgba(139,92,246,0.12)' }}>
+            <p className="text-[10px] font-mono text-zinc-500 mb-1 uppercase tracking-wider">Best 24h</p>
+            {bestPerformer ? (
+              <>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <img src={bestPerformer.image} alt={bestPerformer.symbol} className="w-4 h-4 rounded-full" />
+                  <p className="text-sm font-bold text-white">{bestPerformer.symbol.toUpperCase()}</p>
+                </div>
+                <p className="text-emerald-400 text-sm font-bold">
+                  {formatPercent(bestPerformer.price_change_percentage_24h || 0)}
+                </p>
+              </>
+            ) : (
+              <p className="text-zinc-600 text-xs">—</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {watched.length === 0 ? (
         <div className="card p-12 text-center">
@@ -132,11 +223,18 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
               </tr>
             </thead>
             <tbody>
-              {watched.map(token => {
+              {watched.map((token, i) => {
                 const change24 = token.price_change_percentage_24h || 0
                 const change7d = token.price_change_percentage_7d_in_currency || 0
+                const rowBg = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)'
                 return (
-                  <tr key={token.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors cursor-pointer" onClick={() => router.push(token.id === 'mrocks' ? '/dashboard/mrocks' : `/dashboard/token/${token.id}`)}>
+                  <tr
+                    key={token.id}
+                    className="border-b border-zinc-800/50 transition-colors cursor-pointer"
+                    style={{ background: rowBg }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(139,92,246,0.04)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = rowBg)}
+                    onClick={() => router.push(token.id === 'mrocks' ? '/dashboard/mrocks' : `/dashboard/token/${token.id}`)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <img src={token.image} alt={token.name} className="w-7 h-7 rounded-full" />

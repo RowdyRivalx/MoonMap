@@ -23,6 +23,23 @@ export const COIN_TO_MINT: Record<string, string> = {
   illuvium: 'C4kNoGdDexYsGKn97y1KEPWbw27i8RNSeM5NaJ35mkxa',
   'ribbon-finance': '3P9xwxrU4AuRSYU6cR5hrXJMhzw4okdzyGxgSEv9pump',
   'convex-finance': 'Gsui8MEE5C8nzsF8SLasivphmZv9n2V2WpM8Yj5Ww7a6',
+  // Solana-native tokens
+  jupiter: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
+  bonk: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+  dogwifcoin: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
+  'jito-governance': 'jtojtomepa8beP8AuQc6eXt5FriJwfFMwt2KnK4nKRh',
+  'pyth-network': 'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3',
+  orca: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
+  raydium: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
+  marinade: 'MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey',
+  'drift-protocol': 'DriFtupJYLTosbwoN8koMbEYSx54aFAVLddWsbksjwg7',
+  'render-token': 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',
+  helium: 'hntyVP6YFm1Hg25TN9WGLqM18LQ4fHoeUTCqgkdpQWz',
+  stepn: 'StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT',
+  gmt: '7i5KKsX2weiTkry7jA4ZwSuXGhs5eJBEjY8vVxR4pfRx',
+  atlas: 'ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx',
+  polis: 'poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qVk',
+  samo: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
 }
 
 export const MINT_TO_COIN: Record<string, string> = Object.fromEntries(

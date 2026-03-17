@@ -65,11 +65,20 @@ export interface UserSubscription {
 }
 
 export const DAO_COINS = [
+  // Original 20
   'uniswap', 'aave', 'compound-governance-token', 'maker',
   'curve-dao-token', 'yearn-finance', 'sushi', 'balancer',
   'convex-finance', 'lido-dao', 'frax-share', 'ribbon-finance',
   'olympus', 'illuvium', 'apecoin', 'ens',
-  'gitcoin', 'decentraland', 'the-sandbox', 'axie-infinity'
+  'gitcoin', 'decentraland', 'the-sandbox', 'axie-infinity',
+  // Solana ecosystem — infrastructure & DeFi
+  'jupiter', 'bonk', 'dogwifcoin', 'jito-governance', 'pyth-network',
+  'orca', 'raydium', 'marinade', 'drift-protocol', 'tensor',
+  'kamino', 'helium', 'render-token', 'wormhole',
+  // Solana gaming & metaverse
+  'stepn', 'star-atlas', 'aurory', 'gmt', 'atlas',
+  'polis', 'samo', 'cope', 'media-network', 'oxygen',
+  'portals', 'metaplex',
 ] as const
 
 export const FREE_TIER_LIMIT = 5 // watchlist items

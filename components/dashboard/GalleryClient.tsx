@@ -122,16 +122,20 @@ export default function GalleryClient({ tier, wallet }: Props) {
           const c = tierColor(t)
           const info = TIER_TRAITS[t]
           return (
-            <div key={t} className="card p-4" style={{ borderColor: c.border, background: c.bg }}>
-              <div className="flex items-center gap-2 mb-1">
+            <div key={t} className="stat-card p-4 transition-all duration-200 hover:-translate-y-0.5"
+              style={{ borderColor: c.border, background: c.bg }}>
+              {/* Accent top bar */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-[14px]"
+                style={{ background: `linear-gradient(90deg, transparent, ${c.color}88, transparent)` }} />
+              <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-lg">{tierIcon(t)}</span>
                 <span className="font-black text-sm" style={{ color: c.color, fontFamily: 'Syne, sans-serif' }}>{tierLabel(t)}</span>
               </div>
-              <p className="text-xs" style={{ color: 'rgba(161,161,170,0.7)' }}>{info.description}</p>
-              <div className="mt-2 flex flex-wrap gap-1">
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(161,161,170,0.7)' }}>{info.description}</p>
+              <div className="mt-2.5 flex flex-wrap gap-1">
                 {info.traits.slice(0, 2).map(trait => (
-                  <span key={trait} className="text-xs px-1.5 py-0.5 rounded"
-                    style={{ background: 'rgba(0,0,0,0.3)', color: c.color, fontFamily: 'Space Mono, monospace', fontSize: '9px' }}>
+                  <span key={trait} className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: `${c.color}14`, border: `1px solid ${c.border}`, color: c.color, fontFamily: 'Space Mono, monospace', fontSize: '9px' }}>
                     {trait}
                   </span>
                 ))}
@@ -179,11 +183,11 @@ export default function GalleryClient({ tier, wallet }: Props) {
       {(loading || (filter === 'owned' && loadingOwned)) && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {Array.from({ length: LIMIT }).map((_, i) => (
-            <div key={i} className="card overflow-hidden animate-pulse">
-              <div className="aspect-square" style={{ background: 'rgba(139,92,246,0.08)' }} />
+            <div key={i} className="card overflow-hidden">
+              <div className="aspect-square shimmer" />
               <div className="p-2 space-y-1.5">
-                <div className="h-3 rounded" style={{ background: 'rgba(139,92,246,0.08)', width: '60%' }} />
-                <div className="h-2 rounded" style={{ background: 'rgba(139,92,246,0.06)', width: '80%' }} />
+                <div className="h-3 rounded shimmer" style={{ width: '60%' }} />
+                <div className="h-2 rounded shimmer" style={{ width: '80%' }} />
               </div>
             </div>
           ))}

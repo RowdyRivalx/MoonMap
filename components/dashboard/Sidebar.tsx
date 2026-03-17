@@ -13,17 +13,19 @@ interface Props {
   user: { wallet?: string }
   features: TierFeatures
   tier: TierKey
+  portfolioValue?: number | null
 }
 
+// Keyboard shortcut hints: key sequence to navigate
 const NAV = [
-  { href: '/dashboard',           label: 'Overview',        icon: LayoutDashboard },
-  { href: '/dashboard/mrocks',    label: '$MROCKS',         icon: Rocket },
-  { href: '/dashboard/markets',   label: 'Markets',         icon: TrendingUp },
-  { href: '/dashboard/portfolio', label: 'Portfolio',       icon: BarChart2 },
-  { href: '/dashboard/watchlist', label: 'Watchlist',       icon: Star },
-  { href: '/dashboard/gallery',   label: 'Gallery',         icon: Image },
-  { href: '/dashboard/news',      label: 'News & Sentiment',icon: Newspaper },
-  { href: '/dashboard/settings',  label: 'Settings',        icon: Settings },
+  { href: '/dashboard',           label: 'Overview',         icon: LayoutDashboard, shortcut: 'G O' },
+  { href: '/dashboard/mrocks',    label: '$MROCKS',          icon: Rocket,          shortcut: 'G R' },
+  { href: '/dashboard/markets',   label: 'Markets',          icon: TrendingUp,      shortcut: 'G M' },
+  { href: '/dashboard/portfolio', label: 'Portfolio',        icon: BarChart2,       shortcut: 'G P' },
+  { href: '/dashboard/watchlist', label: 'Watchlist',        icon: Star,            shortcut: 'G W' },
+  { href: '/dashboard/gallery',   label: 'Gallery',          icon: Image,           shortcut: 'G G' },
+  { href: '/dashboard/news',      label: 'News & Sentiment', icon: Newspaper,       shortcut: 'G N' },
+  { href: '/dashboard/settings',  label: 'Settings',         icon: Settings,        shortcut: 'G S' },
 ]
 
 const TIER_META: Record<TierKey, { label: string; color: string; bg: string; border: string; glow: string; icon: string }> = {
@@ -33,7 +35,7 @@ const TIER_META: Record<TierKey, { label: string; color: string; bg: string; bor
   tier3: { label: 'MOONSTER',    color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   glow: '0 0 18px rgba(245,158,11,0.28)',      icon: '⛓️' },
 }
 
-export default function DashboardSidebar({ user, features, tier }: Props) {
+export default function DashboardSidebar({ user, features, tier, portfolioValue }: Props) {
   const pathname = usePathname()
   const shortWallet = user.wallet ? `${user.wallet.slice(0, 4)}…${user.wallet.slice(-4)}` : '—'
   const tm = TIER_META[tier]
@@ -64,18 +66,53 @@ export default function DashboardSidebar({ user, features, tier }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {NAV.map(({ href, label, icon: Icon, shortcut }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link key={href} href={href}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 border ${active ? 'nav-active font-display' : 'border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]'}`}>
+              className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 border relative ${
+                active
+                  ? 'nav-active font-display'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]'
+              }`}>
+              {/* Active left bar accent */}
+              {active && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                  style={{ background: 'linear-gradient(to bottom, #a78bfa, #7c3aed)', boxShadow: '0 0 6px rgba(167,139,250,0.6)' }} />
+              )}
               <Icon size={14} className={active ? 'text-violet-400' : ''} strokeWidth={active ? 2.5 : 2} />
-              <span>{label}</span>
-              {active && <div className="ml-auto w-1 h-1 rounded-full bg-violet-400 opacity-80" />}
+              <span className="flex-1">{label}</span>
+              {/* Keyboard shortcut hint — only visible on hover or when active */}
+              <span
+                className={`text-[9px] font-mono px-1 py-0.5 rounded transition-opacity ${active ? 'opacity-40' : 'opacity-0 group-hover:opacity-30'}`}
+                style={{
+                  background: 'rgba(139,92,246,0.15)',
+                  color: active ? '#a78bfa' : 'rgba(113,113,122,0.8)',
+                  border: '1px solid rgba(139,92,246,0.15)',
+                  letterSpacing: '0.06em',
+                }}>
+                {shortcut}
+              </span>
+              {active && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#a78bfa', boxShadow: '0 0 5px rgba(167,139,250,0.8)' }} />}
             </Link>
           )
         })}
       </nav>
+
+      {/* Portfolio value (shown if holdings exist) */}
+      {portfolioValue != null && portfolioValue > 0 && (
+        <div className="mx-2 mb-2 px-3 py-2.5 rounded-xl"
+          style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(139,92,246,0.18)' }}>
+          <p className="text-[9px] font-mono mb-0.5" style={{ color: 'rgba(113,113,122,0.6)' }}>PORTFOLIO VALUE</p>
+          <p className="text-sm font-bold" style={{ color: '#a78bfa' }}>
+            ${portfolioValue >= 1_000_000
+              ? `${(portfolioValue / 1_000_000).toFixed(2)}M`
+              : portfolioValue >= 1_000
+              ? `${(portfolioValue / 1_000).toFixed(1)}K`
+              : portfolioValue.toFixed(2)}
+          </p>
+        </div>
+      )}
 
       {/* Tier badge */}
       <div className="mx-2 mb-2 p-3 rounded-xl transition-all"

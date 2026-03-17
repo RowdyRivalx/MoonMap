@@ -21,13 +21,21 @@ export async function getDAOTokens(ids: string[]): Promise<DAOToken[]> {
     price_change_percentage: '24h,7d',
   })
 
-  const res = await fetch(`${COINGECKO_BASE}/coins/markets?${params}`, {
-    headers: cgHeaders,
-    next: { revalidate: 60 }, // cache 60s
-  })
+  try {
+    const res = await fetch(`${COINGECKO_BASE}/coins/markets?${params}`, {
+      headers: cgHeaders,
+      next: { revalidate: 60 }, // cache 60s
+    })
 
-  if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`)
-  return res.json()
+    if (!res.ok) {
+      console.error(`CoinGecko markets error: ${res.status}`)
+      return []
+    }
+    return res.json()
+  } catch (err) {
+    console.error('getDAOTokens fetch failed:', err)
+    return []
+  }
 }
 
 // ─── Single Coin Details ─────────────────────────────────────────────────────
@@ -46,25 +54,30 @@ export async function getDAOTokenDetail(id: string): Promise<DAOToken & {
     developer_data: 'true',
   })
 
-  const res = await fetch(`${COINGECKO_BASE}/coins/${id}?${params}`, {
-    headers: cgHeaders,
-    next: { revalidate: 120 },
-  })
+  try {
+    const res = await fetch(`${COINGECKO_BASE}/coins/${id}?${params}`, {
+      headers: cgHeaders,
+      next: { revalidate: 120 },
+    })
 
-  if (!res.ok) throw new Error(`CoinGecko detail error: ${res.status}`)
-  const data = await res.json()
+    if (!res.ok) throw new Error(`CoinGecko detail error: ${res.status}`)
+    const data = await res.json()
 
-  // Flatten market_data into top-level for type compatibility
-  return {
-    ...data,
-    current_price: data.market_data?.current_price?.usd,
-    price_change_percentage_24h: data.market_data?.price_change_percentage_24h,
-    price_change_percentage_7d_in_currency: data.market_data?.price_change_percentage_7d,
-    market_cap: data.market_data?.market_cap?.usd,
-    total_volume: data.market_data?.total_volume?.usd,
-    circulating_supply: data.market_data?.circulating_supply,
-    ath: data.market_data?.ath?.usd,
-    ath_change_percentage: data.market_data?.ath_change_percentage?.usd,
+    // Flatten market_data into top-level for type compatibility
+    return {
+      ...data,
+      current_price: data.market_data?.current_price?.usd,
+      price_change_percentage_24h: data.market_data?.price_change_percentage_24h,
+      price_change_percentage_7d_in_currency: data.market_data?.price_change_percentage_7d,
+      market_cap: data.market_data?.market_cap?.usd,
+      total_volume: data.market_data?.total_volume?.usd,
+      circulating_supply: data.market_data?.circulating_supply,
+      ath: data.market_data?.ath?.usd,
+      ath_change_percentage: data.market_data?.ath_change_percentage?.usd,
+    }
+  } catch (err) {
+    console.error(`getDAOTokenDetail(${id}) failed:`, err)
+    throw err
   }
 }
 
@@ -80,18 +93,26 @@ export async function getPriceHistory(
     interval: days <= 7 ? 'hourly' : 'daily',
   })
 
-  const res = await fetch(`${COINGECKO_BASE}/coins/${id}/market_chart?${params}`, {
-    headers: cgHeaders,
-    next: { revalidate: 300 },
-  })
+  try {
+    const res = await fetch(`${COINGECKO_BASE}/coins/${id}/market_chart?${params}`, {
+      headers: cgHeaders,
+      next: { revalidate: 300 },
+    })
 
-  if (!res.ok) throw new Error(`Price history error: ${res.status}`)
-  const data = await res.json()
+    if (!res.ok) {
+      console.error(`Price history error for ${id}: ${res.status}`)
+      return []
+    }
+    const data = await res.json()
 
-  return (data.prices as [number, number][]).map(([timestamp, price]) => ({
-    timestamp,
-    price,
-  }))
+    return (data.prices as [number, number][]).map(([timestamp, price]) => ({
+      timestamp,
+      price,
+    }))
+  } catch (err) {
+    console.error(`getPriceHistory(${id}) failed:`, err)
+    return []
+  }
 }
 
 // ─── News + Sentiment ────────────────────────────────────────────────────────
@@ -270,6 +291,43 @@ export function calculateSentiment(news: NewsItem[]): SentimentData {
 export async function getTopDAOs(limit: number = 20): Promise<DAOToken[]> {
   const { DAO_COINS } = await import('@/types')
   return getDAOTokens([...DAO_COINS].slice(0, limit))
+}
+
+export interface TopMovers {
+  gainers: DAOToken[]
+  losers: DAOToken[]
+}
+
+/**
+ * Fetches all DAO tokens and returns the top N gainers and losers
+ * sorted by 24-hour price change percentage.
+ */
+export async function getTopMovers(
+  tokenList?: string[],
+  limit: number = 5
+): Promise<TopMovers> {
+  try {
+    const { DAO_COINS } = await import('@/types')
+    const ids = tokenList ?? [...DAO_COINS]
+    const tokens = await getDAOTokens(ids)
+
+    // Only include tokens with valid price change data
+    const valid = tokens.filter(
+      (t) => typeof t.price_change_percentage_24h === 'number' && !isNaN(t.price_change_percentage_24h)
+    )
+
+    const sorted = [...valid].sort(
+      (a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h
+    )
+
+    return {
+      gainers: sorted.slice(0, limit),
+      losers: sorted.slice(-limit).reverse(),
+    }
+  } catch (err) {
+    console.error('getTopMovers failed:', err)
+    return { gainers: [], losers: [] }
+  }
 }
 
 // ─── Token-specific news ─────────────────────────────────────────────────────

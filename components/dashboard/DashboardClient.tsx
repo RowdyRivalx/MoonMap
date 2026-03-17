@@ -1,11 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, X, ExternalLink, TrendingUp, TrendingDown, Repeat2, Newspaper, Star } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Link from 'next/link'
 import { formatCurrency, formatPercent, formatNumber, priceChangeColor, timeAgo } from '@/lib/utils'
-import type { NewsItem, SentimentData, UserSubscription } from '@/types'
+import type { NewsItem, SentimentData, UserSubscription, DAOToken } from '@/types'
 import type { MROCKSData } from '@/lib/api'
 import type { PriceHistory } from '@/types'
 import TrialBanner from './TrialBanner'
@@ -24,6 +24,7 @@ interface Props {
   watchlistCount: number
   justUpgraded: boolean
   trialExpiresAt?: string | null
+  tokens?: DAOToken[]
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -36,12 +37,35 @@ const CustomTooltip = ({ active, payload }: any) => {
   )
 }
 
+// Inline SVG sparkline for the ticker
+function TickerSparkline({ prices, isUp }: { prices: number[]; isUp: boolean }) {
+  if (!prices || prices.length < 2) return null
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const range = max - min || 1
+  const w = 48
+  const h = 20
+  const pts = prices.map((p, i) => {
+    const x = (i / (prices.length - 1)) * w
+    const y = h - ((p - min) / range) * h
+    return `${x},${y}`
+  }).join(' ')
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="opacity-80">
+      <polyline points={pts} fill="none" stroke={isUp ? '#10b981' : '#ef4444'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export default function DashboardClient({
-  mrocks, mrocksHistory, news, sentiment, subscription, features, watchlistCount, justUpgraded, trialExpiresAt
+  mrocks, mrocksHistory, news, sentiment, subscription, features, watchlistCount, justUpgraded, trialExpiresAt, tokens = []
 }: Props) {
   const router = useRouter()
   const [showBanner, setShowBanner] = useState(justUpgraded)
   const [showSwap, setShowSwap] = useState(false)
+  const [tickerOffset, setTickerOffset] = useState(0)
+  const tickerRef = useRef<HTMLDivElement>(null)
+  const animRef = useRef<number>()
 
   const tier = subscription.tier
   const isHolder = tier === 'tier1' || tier === 'tier2' || tier === 'tier3'
@@ -62,6 +86,43 @@ export default function DashboardClient({
     current_price: mrocks.price,
   } as any : null
 
+  // ---- Top Movers ----
+  const sortableTokens = tokens.filter(t => typeof t.price_change_percentage_24h === 'number')
+  const sorted = [...sortableTokens].sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
+  const topGainers = sorted.slice(0, 3)
+  const topLosers = sorted.slice(-3).reverse()
+
+  // ---- Market Overview stats ----
+  const totalTracked = tokens.length
+  const avg24h = totalTracked > 0
+    ? sortableTokens.reduce((s, t) => s + t.price_change_percentage_24h, 0) / (sortableTokens.length || 1)
+    : 0
+  const bullishCount = sortableTokens.filter(t => t.price_change_percentage_24h > 0).length
+  const bearishCount = sortableTokens.filter(t => t.price_change_percentage_24h < 0).length
+
+  // ---- Ticker tokens (top 6 by market cap) ----
+  const tickerTokens = tokens.length > 0
+    ? [...tokens].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)).slice(0, 8)
+    : []
+
+  // Smooth scrolling ticker
+  useEffect(() => {
+    if (!tickerRef.current || tickerTokens.length === 0) return
+    let pos = 0
+    const speed = 0.4
+    function step() {
+      pos += speed
+      const el = tickerRef.current
+      if (!el) return
+      const totalWidth = el.scrollWidth / 2
+      if (pos >= totalWidth) pos = 0
+      el.style.transform = `translateX(-${pos}px)`
+      animRef.current = requestAnimationFrame(step)
+    }
+    animRef.current = requestAnimationFrame(step)
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
+  }, [tickerTokens.length])
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {showSwap && <SwapPanel token={mrocksToken} onClose={() => setShowSwap(false)} />}
@@ -76,6 +137,37 @@ export default function DashboardClient({
       )}
 
       {(tier === 'free' || tier === 'tier1') && <TrialBanner trialExpiresAt={trialExpiresAt ?? null}/>}
+
+      {/* Live Market Ticker */}
+      {tickerTokens.length > 0 && (
+        <div className="mb-5 rounded-xl overflow-hidden relative"
+          style={{ background: 'rgba(12,6,28,0.8)', border: '1px solid rgba(139,92,246,0.15)' }}>
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+            style={{ background: 'linear-gradient(to right, rgba(12,6,28,1), transparent)' }} />
+          <div className="absolute right-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
+            style={{ background: 'linear-gradient(to left, rgba(12,6,28,1), transparent)' }} />
+          <div className="overflow-hidden py-2.5 px-4">
+            <div ref={tickerRef} className="flex gap-8 will-change-transform" style={{ width: 'max-content' }}>
+              {/* Duplicate for seamless loop */}
+              {[...tickerTokens, ...tickerTokens].map((token, i) => {
+                const c = token.price_change_percentage_24h || 0
+                const up = c >= 0
+                return (
+                  <div key={`${token.id}-${i}`} className="flex items-center gap-2 flex-shrink-0">
+                    <img src={token.image} alt={token.symbol} className="w-4 h-4 rounded-full flex-shrink-0" />
+                    <span className="text-xs font-mono font-semibold text-white">{token.symbol.toUpperCase()}</span>
+                    <span className="text-xs font-mono text-zinc-300">{formatCurrency(token.current_price)}</span>
+                    <span className={`text-xs font-mono font-bold ${up ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {up ? '▲' : '▼'} {Math.abs(c).toFixed(2)}%
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -100,6 +192,105 @@ export default function DashboardClient({
         <span className="trait-badge" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontFamily: 'Space Mono, monospace', fontSize: '10px', padding: '3px 8px', borderRadius: '20px' }}>🧔 Dark Orc Red Beard</span>
         <span className="ml-auto trait-badge trait-badge-gold glow-tier3">⭐ MOONSTER</span>
       </div>
+
+      {/* Market Overview stat bar */}
+      {totalTracked > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: 'Tokens Tracked', value: totalTracked.toString(), sub: 'DAO governance' },
+            {
+              label: 'Avg 24h Change',
+              value: formatPercent(avg24h),
+              sub: avg24h >= 0 ? 'market rising' : 'market falling',
+              valueClass: avg24h >= 0 ? 'text-emerald-400' : 'text-red-400',
+            },
+            {
+              label: 'Bullish',
+              value: bullishCount.toString(),
+              sub: `${Math.round((bullishCount / (totalTracked || 1)) * 100)}% of tokens`,
+              valueClass: 'text-emerald-400',
+            },
+            {
+              label: 'Bearish',
+              value: bearishCount.toString(),
+              sub: `${Math.round((bearishCount / (totalTracked || 1)) * 100)}% of tokens`,
+              valueClass: 'text-red-400',
+            },
+          ].map(({ label, value, sub, valueClass }) => (
+            <div key={label} className="rounded-xl px-4 py-3"
+              style={{ background: 'rgba(12,6,28,0.7)', border: '1px solid rgba(139,92,246,0.12)' }}>
+              <p className="text-[10px] font-mono text-zinc-500 mb-1 uppercase tracking-wider">{label}</p>
+              <p className={`text-xl font-bold ${valueClass || 'text-white'}`}>{value}</p>
+              <p className="text-[10px] text-zinc-600 mt-0.5">{sub}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Top Movers */}
+      {(topGainers.length > 0 || topLosers.length > 0) && (
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          {/* Top Gainers */}
+          <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(12,6,28,0.7)', border: '1px solid rgba(16,185,129,0.18)' }}>
+            <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(16,185,129,0.1)' }}>
+              <TrendingUp size={13} className="text-emerald-400" />
+              <span className="text-xs font-mono font-semibold text-emerald-400 tracking-wider">TOP GAINERS · 24H</span>
+            </div>
+            <div className="divide-y divide-zinc-800/40">
+              {topGainers.map(token => {
+                const c = token.price_change_percentage_24h
+                const sparkPrices = token.sparkline_in_7d?.price?.slice(-24) || []
+                return (
+                  <div key={token.id}
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-emerald-500/5 transition-colors"
+                    onClick={() => router.push(token.id === 'mrocks' ? '/dashboard/mrocks' : `/dashboard/token/${token.id}`)}>
+                    <img src={token.image} alt={token.symbol} className="w-7 h-7 rounded-full flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white">{token.symbol.toUpperCase()}</p>
+                      <p className="text-[10px] text-zinc-500 truncate">{token.name}</p>
+                    </div>
+                    {sparkPrices.length > 1 && <TickerSparkline prices={sparkPrices} isUp={true} />}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-mono text-white">{formatCurrency(token.current_price)}</p>
+                      <p className="text-xs font-bold text-emerald-400">+{c.toFixed(2)}%</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Top Losers */}
+          <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(12,6,28,0.7)', border: '1px solid rgba(239,68,68,0.18)' }}>
+            <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(239,68,68,0.1)' }}>
+              <TrendingDown size={13} className="text-red-400" />
+              <span className="text-xs font-mono font-semibold text-red-400 tracking-wider">TOP LOSERS · 24H</span>
+            </div>
+            <div className="divide-y divide-zinc-800/40">
+              {topLosers.map(token => {
+                const c = token.price_change_percentage_24h
+                const sparkPrices = token.sparkline_in_7d?.price?.slice(-24) || []
+                return (
+                  <div key={token.id}
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-red-500/5 transition-colors"
+                    onClick={() => router.push(token.id === 'mrocks' ? '/dashboard/mrocks' : `/dashboard/token/${token.id}`)}>
+                    <img src={token.image} alt={token.symbol} className="w-7 h-7 rounded-full flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white">{token.symbol.toUpperCase()}</p>
+                      <p className="text-[10px] text-zinc-500 truncate">{token.name}</p>
+                    </div>
+                    {sparkPrices.length > 1 && <TickerSparkline prices={sparkPrices} isUp={false} />}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-mono text-white">{formatCurrency(token.current_price)}</p>
+                      <p className="text-xs font-bold text-red-400">{c.toFixed(2)}%</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MROCKS Hero Card */}
       {mrocks ? (
