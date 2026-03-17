@@ -409,51 +409,107 @@ export interface SocialPost {
   retweets?: number
 }
 
-export async function getMoonsterSocialPosts(tokenSymbol?: string): Promise<SocialPost[]> {
-  // Fetch Nitter RSS feeds (public X mirror) for Moonster community accounts
-  const nitterBase = 'https://nitter.poast.org'
+// Try fetching an RSS feed via rss2json with a short timeout
+async function fetchRss2Json(rssUrl: string): Promise<{ feed: any; items: any[] } | null> {
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 4000)
+    const res = await fetch(
+      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
+      { signal: controller.signal, next: { revalidate: 300 } }
+    )
+    clearTimeout(timer)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.status === 'ok' && data.items?.length ? data : null
+  } catch {
+    return null
+  }
+}
 
+export async function getMoonsterSocialPosts(tokenSymbol?: string): Promise<SocialPost[]> {
   const posts: SocialPost[] = []
 
-  // Try fetching from Nitter RSS for each account
-  for (const account of MOONSTER_ACCOUNTS.slice(0, 3)) {
-    try {
-      const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`${nitterBase}/${account}/rss`)}`
-      const res = await fetch(url, { next: { revalidate: 300 } })
-      if (!res.ok) continue
-      const data = await res.json()
-      if (data.status !== 'ok' || !data.items?.length) continue
+  // Strategy 1: RSSHub public instance — token-specific search (most relevant)
+  if (tokenSymbol) {
+    const sym = tokenSymbol.toUpperCase()
+    const rsshubSearchUrl = `https://rsshub.app/twitter/keyword/${encodeURIComponent(`$${sym}`)}`
+    const data = await fetchRss2Json(rsshubSearchUrl)
+    if (data) {
+      const items = data.items.slice(0, 4).map((item: any, i: number) => {
+        // RSSHub Twitter items: author in item.author or item.creator
+        const handle = item.author || item.creator || `$${sym}`
+        return {
+          id: `rsshub-search-${i}`,
+          author: handle.replace('@', ''),
+          handle: handle.startsWith('@') ? handle : `@${handle}`,
+          content: (item.title || item.description || '').replace(/<[^>]*>/g, '').trim(),
+          timestamp: item.pubDate || new Date().toISOString(),
+          url: item.link || `https://x.com/search?q=%24${sym}&f=live`,
+          avatar: `https://unavatar.io/twitter/${handle.replace('@', '')}`,
+          likes: 0,
+          retweets: 0,
+        }
+      })
+      posts.push(...items)
+    }
+  }
 
-      const accountPosts = data.items.slice(0, 3).map((item: any, i: number) => ({
+  // Strategy 2: RSSHub for community accounts (if search didn't get enough)
+  const nitterInstances = [
+    'https://nitter.poast.org',
+    'https://nitter.privacydev.net',
+    'https://nitter.1d4.us',
+  ]
+
+  if (posts.length < 4) {
+    for (const account of MOONSTER_ACCOUNTS.slice(0, 2)) {
+      if (posts.length >= 6) break
+
+      // Try RSSHub account feed first
+      const rsshubUrl = `https://rsshub.app/twitter/user/${account}`
+      let data = await fetchRss2Json(rsshubUrl)
+
+      // Fall back through Nitter instances
+      if (!data) {
+        for (const nitter of nitterInstances) {
+          data = await fetchRss2Json(`${nitter}/${account}/rss`)
+          if (data) break
+        }
+      }
+
+      if (!data) continue
+
+      const accountPosts = data.items.slice(0, 2).map((item: any, i: number) => ({
         id: `${account}-${i}`,
         author: data.feed?.title?.replace('Twitter / ', '') || account,
         handle: `@${account}`,
-        content: item.title?.replace(/<[^>]*>/g, '') || '',
+        content: (item.title || '').replace(/<[^>]*>/g, '').trim(),
         timestamp: item.pubDate || new Date().toISOString(),
-        url: item.link || `https://x.com/${account}`,
+        url: item.link?.replace(/^https?:\/\/nitter\.[^/]+/, 'https://x.com') || `https://x.com/${account}`,
         avatar: `https://unavatar.io/twitter/${account}`,
         likes: 0,
         retweets: 0,
       }))
-
       posts.push(...accountPosts)
-    } catch { continue }
+    }
   }
 
-  // If no posts from Nitter, return curated placeholder posts about the token
-  if (posts.length === 0 && tokenSymbol) {
+  if (posts.length > 0) return posts.slice(0, 6)
+
+  // Strategy 3: Fallback — placeholder linking to live X search
+  if (tokenSymbol) {
     return [{
-      id: 'placeholder-1',
+      id: 'fallback-1',
       author: 'Moonsters Community',
       handle: '@moonsters_io',
-      content: `Check out the latest ${tokenSymbol.toUpperCase()} updates and join the discussion in the Moonsters DAO community! 🌙`,
+      content: `Join the $${tokenSymbol.toUpperCase()} discussion on X — see what the Moonsters community is saying right now. 🌙`,
       timestamp: new Date().toISOString(),
-      url: 'https://x.com/moonsters_io',
+      url: `https://x.com/search?q=%24${tokenSymbol.toUpperCase()}&src=typed_query&f=live`,
       avatar: 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54',
     }]
   }
-
-  return posts.slice(0, 6)
+  return []
 }
 
 // ─── MROCKS Token (Solana SPL) ────────────────────────────────────────────────

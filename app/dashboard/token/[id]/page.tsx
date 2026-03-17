@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
-import { getDAOTokenDetail, getPriceHistory, getTokenNews } from '@/lib/api'
+import { getDAOTokenDetail, getPriceHistory, getTokenNews, getMoonsterSocialPosts } from '@/lib/api'
 import TokenDetailClient from '@/components/dashboard/TokenDetailClient'
 
 export default async function TokenPage({ params }: { params: { id: string } }) {
@@ -9,7 +9,7 @@ export default async function TokenPage({ params }: { params: { id: string } }) 
   if (!(session?.user as any)?.id) redirect('/login')
 
   // Fetch sequentially to avoid rate limits on free CoinGecko tier
-  let token, history1d, history7d, history30d, news
+  let token, history1d, history7d, history30d, news, socialPosts
   try {
     token = await getDAOTokenDetail(params.id)
   } catch (e) {
@@ -33,6 +33,10 @@ export default async function TokenPage({ params }: { params: { id: string } }) 
     news = await getTokenNews(token.id, token.symbol, token.name)
   } catch { news = [] }
 
+  try {
+    socialPosts = await getMoonsterSocialPosts(token.symbol)
+  } catch { socialPosts = [] }
+
   return (
     <TokenDetailClient
       token={token}
@@ -40,6 +44,7 @@ export default async function TokenPage({ params }: { params: { id: string } }) 
       history7d={history7d}
       history30d={history30d}
       news={(news || []).slice(0, 15)}
+      socialPosts={socialPosts || []}
       tier={(session.user as any).tier || 'free'}
     />
   )
