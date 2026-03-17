@@ -5,6 +5,7 @@ import { Star, TrendingUp, TrendingDown, Search, X, Loader2 } from 'lucide-react
 import { formatCurrency, formatPercent, priceChangeColor } from '@/lib/utils'
 import SwapPanel from './SwapPanel'
 import type { DAOToken, UserSubscription } from '@/types'
+import { localWatchlistAdd, localWatchlistRemove, localWatchlistIds, localWatchlistGet } from '@/lib/watchlist-local'
 
 type SortKey = 'market_cap' | 'current_price' | 'price_change_percentage_24h' | 'price_change_percentage_7d_in_currency' | 'total_volume'
 type SortDir = 'asc' | 'desc'
@@ -37,8 +38,19 @@ export default function MarketsClient({ tokens, subscription }: Props) {
   const searchWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Seed from localStorage immediately, then merge with DB response
+    setWatchlist(localWatchlistIds())
     fetch('/api/data/watchlist').then(r => r.json()).then(data => {
-      if (data.items) setWatchlist(new Set(data.items.map((i: any) => i.coinId)))
+      if (data.items) {
+        const dbIds = new Set(data.items.map((i: any) => i.coinId) as string[])
+        // Sync any localStorage items up to DB
+        for (const item of localWatchlistGet()) {
+          if (!dbIds.has(item.coinId)) {
+            fetch('/api/data/watchlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) }).catch(() => {})
+          }
+        }
+        setWatchlist(prev => new Set([...dbIds, ...prev]))
+      }
     }).catch(() => {})
   }, [])
 
@@ -97,12 +109,23 @@ export default function MarketsClient({ tokens, subscription }: Props) {
     setLoadingId(token.id)
     try {
       if (watchlist.has(token.id)) {
-        await fetch('/api/data/watchlist', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coinId: token.id }) })
+        localWatchlistRemove(token.id)
         setWatchlist(prev => { const s = new Set(prev); s.delete(token.id); return s })
+        fetch('/api/data/watchlist', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coinId: token.id }) }).catch(() => {})
       } else {
+        // Save locally first so it works even if DB is unavailable
+        localWatchlistAdd({ coinId: token.id, coinName: token.name, coinSymbol: token.symbol })
+        setWatchlist(prev => new Set(prev).add(token.id))
         const res = await fetch('/api/data/watchlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coinId: token.id, coinName: token.name, coinSymbol: token.symbol }) })
-        if (res.ok) setWatchlist(prev => new Set(prev).add(token.id))
-        else { const { error } = await res.json(); alert(error) }
+        if (!res.ok) {
+          const data = await res.json()
+          // If it's a real error (not just DB unavailable), roll back and report
+          if (res.status !== 503) {
+            localWatchlistRemove(token.id)
+            setWatchlist(prev => { const s = new Set(prev); s.delete(token.id); return s })
+            alert(data.error)
+          }
+        }
       }
     } finally { setLoadingId(null) }
   }

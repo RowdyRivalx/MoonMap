@@ -34,7 +34,6 @@ const TIER_COLORS: Record<string, string> = {
 export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, walletBalances, walletTokensFull, nfts, nftFloorPrice }: Props) {
   const router = useRouter()
   const [holdings, setHoldings] = useState<Record<string, string>>({})
-  const [editingId, setEditingId] = useState<string | null>(null)
   const [walletLoaded, setWalletLoaded] = useState(false)
   const [copiedDonation, setCopiedDonation] = useState(false)
   const [showDust, setShowDust] = useState(false)
@@ -44,8 +43,8 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
 
   // Tokens from wallet not in the DAO list
   const nonDaoTokens = walletTokensFull.filter(t => !daoMints.has(t.mint))
-  const mainTokens = nonDaoTokens.filter(t => t.valueUsd >= 1)
-  const dustTokens = nonDaoTokens.filter(t => t.valueUsd < 1)
+  const mainTokens = nonDaoTokens.filter(t => t.balance > 0 && t.valueUsd >= 1)
+  const dustTokens = nonDaoTokens.filter(t => t.balance > 0 && t.valueUsd < 1)
   const otherTokensValue = nonDaoTokens.reduce((sum, t) => sum + t.valueUsd, 0)
 
   function copyDonation() {
@@ -70,12 +69,6 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
       setWalletLoaded(true)
     }
   }, [])
-
-  function updateHolding(coinId: string, value: string) {
-    const next = { ...holdings, [coinId]: value }
-    setHoldings(next)
-    try { localStorage.setItem('moonmap-portfolio-holdings', JSON.stringify(next)) } catch {}
-  }
 
   function getHolding(coinId: string): number {
     return parseFloat(holdings[coinId] || '0') || 0
@@ -105,9 +98,9 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
   const dayChange = totalChange()
   const detectedCount = Object.keys(walletBalances).length
 
-  // Separate SOL from DAO tokens
+  // Separate SOL from DAO tokens — only show DAO tokens the user actually holds
   const solToken = tokens.find(t => t.id === 'solana')
-  const daoTokens = tokens.filter(t => t.id !== 'solana')
+  const daoTokens = tokens.filter(t => t.id !== 'solana' && getHolding(t.id) > 0)
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -182,7 +175,7 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
         <div className="card overflow-hidden mb-6" style={{ borderColor: 'rgba(139,92,246,0.12)' }}>
           <div className="px-5 py-3 border-b flex items-center gap-2" style={{ borderColor: 'rgba(139,92,246,0.08)' }}>
             <p className="text-xs font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>DAO Token Holdings</p>
-            <p className="text-xs ml-auto" style={{ color: 'rgba(113,113,122,0.6)' }}>Click row for details · Click amount to edit</p>
+            <p className="text-xs ml-auto" style={{ color: 'rgba(113,113,122,0.6)' }}>Click row for details</p>
           </div>
           <table className="w-full text-sm">
             <thead>
@@ -203,11 +196,7 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
                 return (
                   <tr key={token.id} style={{ borderBottom: '1px solid rgba(39,39,42,0.3)' }}
                     className="hover:bg-violet-500/5 transition-colors cursor-pointer"
-                    onClick={(e) => {
-                      // Don't navigate if clicking on the holding input/button
-                      if ((e.target as HTMLElement).closest('button, input')) return
-                      router.push(`/dashboard/token/${token.id}`)
-                    }}>
+                    onClick={() => router.push(`/dashboard/token/${token.id}`)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <img src={token.image} alt={token.name} className="w-7 h-7 rounded-full" />
@@ -222,25 +211,8 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
                     </td>
                     <td className="px-4 py-3 text-right text-xs font-mono text-white">{formatCurrency(token.current_price)}</td>
                     <td className={`px-4 py-3 text-right text-xs font-bold ${priceChangeColor(change)}`}>{formatPercent(change)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {editingId === token.id ? (
-                        <input
-                          type="number" autoFocus
-                          value={holdings[token.id] || ''}
-                          onChange={e => updateHolding(token.id, e.target.value)}
-                          onBlur={() => setEditingId(null)}
-                          onKeyDown={e => e.key === 'Enter' && setEditingId(null)}
-                          className="w-24 text-right text-xs px-2 py-1 rounded-lg"
-                          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(139,92,246,0.4)', color: 'white', fontFamily: 'Space Mono, monospace' }}
-                          placeholder="0.00"
-                        />
-                      ) : (
-                        <button onClick={e => { e.stopPropagation(); setEditingId(token.id) }}
-                          className="text-xs px-2 py-1 rounded-lg transition-colors"
-                          style={{ color: holding > 0 ? 'white' : 'rgba(113,113,122,0.5)', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(139,92,246,0.1)', fontFamily: 'Space Mono, monospace' }}>
-                          {holding > 0 ? holding.toLocaleString() : '+ Add'}
-                        </button>
-                      )}
+                    <td className="px-4 py-3 text-right text-xs font-mono text-white">
+                      {holding > 0 ? holding.toLocaleString() : '—'}
                     </td>
                     <td className="px-4 py-3 text-right text-xs font-bold text-white" style={{ fontFamily: 'Space Mono, monospace' }}>
                       {value > 0 ? formatCurrency(value) : '—'}
@@ -424,7 +396,7 @@ export default function PortfolioClient({ tokens, watchlistItems, wallet, tier, 
       )}
 
       <p className="text-xs text-center mt-6" style={{ color: 'rgba(113,113,122,0.4)' }}>
-        Holdings auto-detected from wallet · Manual overrides saved locally · Not financial advice
+        Holdings auto-detected from wallet · Not financial advice
       </p>
     </div>
   )

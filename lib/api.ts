@@ -627,12 +627,16 @@ export async function getWalletTokensFull(wallet: string): Promise<WalletToken[]
       raw.push({ mint: SOL_MINT_ADDR, name: 'Solana', symbol: 'SOL', balance: solLamports / 1e9, priceUsd: solPriceUsd })
     }
 
-    // SPL fungible tokens
+    // SPL fungible tokens — include any item that has a positive token balance
+    // and is not an NFT (no collection grouping). Helius returns fungible tokens
+    // with several interface types (FungibleToken, FungibleAsset, and others),
+    // so we key on balance presence rather than interface name.
     for (const item of (result.items || [])) {
-      if (item.interface !== 'FungibleToken' && item.interface !== 'FungibleAsset') continue
       const rawBal = item.token_info?.balance || 0
-      const decimals = item.token_info?.decimals ?? 0
       if (rawBal <= 0) continue
+      const isNFT = (item.grouping || []).some((g: any) => g.group_key === 'collection')
+      if (isNFT) continue
+      const decimals = item.token_info?.decimals ?? 0
       const balance = rawBal / Math.pow(10, decimals)
       if (balance <= 0) continue
       raw.push({

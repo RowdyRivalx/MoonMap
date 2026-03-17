@@ -1,11 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Star, Trash2, TrendingUp, TrendingDown, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatPercent, priceChangeColor } from '@/lib/utils'
 import type { DAOToken } from '@/types'
 import type { TierFeatures, TierKey } from '@/lib/tiers'
+import { localWatchlistGet, localWatchlistAdd, localWatchlistRemove } from '@/lib/watchlist-local'
 
 interface WatchlistItem {
   id: string
@@ -30,24 +31,48 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
   const [removing, setRemoving] = useState<string | null>(null)
   const router = useRouter()
 
+  // Merge any localStorage-only items (e.g. added while DB was down)
+  useEffect(() => {
+    const serverIds = new Set(watchlistItems.map(i => i.coinId))
+    const allTokens = [...watchedTokens, ...suggestedTokens]
+    const localOnly = localWatchlistGet().filter(l => !serverIds.has(l.coinId))
+    if (localOnly.length === 0) return
+    const extraItems: WatchlistItem[] = localOnly.map(l => ({
+      id: `local-${l.coinId}`,
+      coinId: l.coinId,
+      coinName: l.coinName,
+      coinSymbol: l.coinSymbol,
+      addedAt: new Date().toISOString(),
+    }))
+    const extraTokens: DAOToken[] = localOnly
+      .map(l => allTokens.find(t => t.id === l.coinId))
+      .filter((t): t is DAOToken => !!t)
+    setItems(prev => [...prev, ...extraItems.filter(e => !prev.some(p => p.coinId === e.coinId))])
+    setWatched(prev => [...prev, ...extraTokens.filter(t => !prev.some(p => p.id === t.id))])
+    setSuggested(prev => prev.filter(t => !localOnly.some(l => l.coinId === t.id)))
+  }, [])
+
   async function removeFromWatchlist(coinId: string) {
     setRemoving(coinId)
     try {
-      await fetch('/api/data/watchlist', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coinId }),
-      })
+      localWatchlistRemove(coinId)
       const removedToken = watched.find(t => t.id === coinId)
       setItems(prev => prev.filter(i => i.coinId !== coinId))
       setWatched(prev => prev.filter(t => t.id !== coinId))
       if (removedToken) setSuggested(prev => [removedToken, ...prev].slice(0, 10))
+      fetch('/api/data/watchlist', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coinId }) }).catch(() => {})
     } finally {
       setRemoving(null)
     }
   }
 
   async function addToWatchlist(token: DAOToken) {
+    // Save locally first so the UI updates immediately regardless of DB state
+    localWatchlistAdd({ coinId: token.id, coinName: token.name, coinSymbol: token.symbol })
+    const newItem: WatchlistItem = { id: `local-${token.id}`, coinId: token.id, coinName: token.name, coinSymbol: token.symbol, addedAt: new Date().toISOString() }
+    setItems(prev => [...prev, newItem])
+    setWatched(prev => [...prev, token])
+    setSuggested(prev => prev.filter(t => t.id !== token.id))
     const res = await fetch('/api/data/watchlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,11 +80,15 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
     })
     if (res.ok) {
       const { item } = await res.json()
-      setItems(prev => [...prev, item])
-      setWatched(prev => [...prev, token])
-      setSuggested(prev => prev.filter(t => t.id !== token.id))
-    } else {
+      // Replace the local placeholder item id with the real DB id
+      setItems(prev => prev.map(i => i.coinId === token.id ? { ...i, id: item.id } : i))
+    } else if (res.status !== 503) {
+      // Real error (not just DB unavailable) — roll back
       const { error } = await res.json()
+      localWatchlistRemove(token.id)
+      setItems(prev => prev.filter(i => i.coinId !== token.id))
+      setWatched(prev => prev.filter(t => t.id !== token.id))
+      setSuggested(prev => [token, ...prev].slice(0, 10))
       alert(error)
     }
   }
