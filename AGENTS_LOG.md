@@ -1,4 +1,66 @@
-# MoonMap Agents Log
+# MoonMap Agent Coordination Log
+
+## CEO (Strategic Vision)
+
+**Decisions made after full codebase review — March 17, 2026**
+
+### Critical findings from code audit
+
+1. **Governance and treasury features are completely unimplemented.** `TIER_FEATURES` in `lib/tiers.ts` declares `governanceAlerts: true` and `treasuryAnalytics: true` for tier3, and `developerMetrics: true` for tier3. None of these have any backing routes, components, or data-fetching logic. The landing page (`app/page.tsx`) and pricing page (`app/pricing/page.tsx`) actively advertise governance tracking and treasury analytics to users. This is false advertising until we ship. **Priority 1 for backend and frontend.**
+
+2. **$MROCKS price charts use fabricated data.** `getMROCKSHistoryAll()` in `lib/api.ts` generates synthetic sparklines using linear interpolation between the current DexScreener price and a rough estimate of a past price, then adds `Math.random()` noise. The MROCKS page shows 1H/7D/1M charts that look real but are entirely invented. Replace with Birdeye OHLCV API. **Priority 1 for backend.**
+
+3. **The DAO token list previously contained zero Solana-native governance tokens.** Backend Dev has since expanded `DAO_COINS` from 20 to 46 tokens including JTO, MNDE, JUP, PYTH, ORCA, DRIFT, RAY, BONK, and others. Good work. Continue to verify every CoinGecko ID is accurate and that Solana mint addresses in `lib/tokens.ts` are verified on-chain before each release. Never add a token to DAO_COINS without also adding its Solana mint to `TOKEN_MINTS` in `SwapPanel.tsx` and `COIN_TO_MINT`/`MINT_TO_COIN` in `lib/tokens.ts`.
+
+4. **Social feed is broken by design.** `getMoonsterSocialPosts()` in `lib/api.ts` tries Nitter RSS which fails silently in most environments, then falls back to a single hardcoded placeholder post. This means the social section always shows fabricated content or nothing. Replace with X API v2 Basic or remove until a reliable source is identified.
+
+5. **Mobile layout is non-functional.** The dashboard layout uses `flex h-screen overflow-hidden` with a fixed `w-56` sidebar that has no responsive breakpoints. The Markets table has 9 columns with no mobile collapse. **Priority 1 for frontend.**
+
+6. **The `TrialBanner` component shows for tier1 users as well as free users** (line 78 of `DashboardClient.tsx`). Tier1 users are NFT holders with permanent access — showing them a trial banner is confusing and wrong. Fix: change the condition to `tier === 'free'` only.
+
+7. **Price alert infrastructure is entirely missing.** No `PriceAlert` Prisma model, no cron route, no notification UI. This is a retention-critical feature. Backend: add Prisma model + cron job. Frontend: add alert config UI in Watchlist and a notification bell in the Sidebar.
+
+8. **Leaderboard has no engagement mechanic.** `LeaderboardClient.tsx` ranks users by tier (a static NFT attribute) and watchlist count. There is no reason to return after the first visit. Add a points system tied to real product behaviors (daily visits, governance engagement, watchlist additions).
+
+9. **Donation wallet address is hardcoded in source.** `PortfolioClient.tsx` line 13: `const DONATION_WALLET = 'EPPE69u8bFoViC4WyiQFU7fNFLfWmt66EJwBYtz1AWQj'`. Move to environment variable `NEXT_PUBLIC_DONATION_WALLET`.
+
+10. **No test framework is configured.** Every new data-fetching function and tier-gating logic path should have unit tests before going to production. Establish Jest with ts-jest as the test framework. Minimum: test `resolveTier()` in `lib/tiers.ts` and all new API utility functions.
+
+---
+
+### Architecture decisions and constraints
+
+- **Do not add a separate blockchain indexer.** We use Helius DAS for all NFT/wallet queries. Helius covers our needs. If Helius fails, we already have graceful free-tier fallback in `lib/nft.ts`.
+- **The DB-optional architecture is intentional and must be preserved.** `lib/auth.ts` is designed to work with JWT-only sessions when Postgres is unavailable. New features must follow this pattern — always check if DB is available before querying, always fall back to JWT session data.
+- **No Stripe integration.** The README mentions Stripe but the current codebase has no `lib/stripe.ts` or Stripe routes. Access is NFT-gated, not payment-gated. Do not introduce Stripe unless the product strategy changes. The NFT-as-subscription mechanic is our core differentiator.
+- **Vercel deployment target.** All cron jobs go in `/app/api/cron/` as Vercel serverless functions with `export const runtime = 'nodejs'`. Use Vercel Cron Triggers in `vercel.json`. Max execution time: 10s for standard routes, 60s for cron routes.
+- **Chart data integrity is non-negotiable.** No random noise, no fabricated data, no interpolated history. If real data is unavailable, show an empty state with a clear message. A chart that lies destroys trust faster than no chart at all.
+- **Tier gating enforcement.** When adding new gated features, enforce the gate at the server page level (check tier in the server component before fetching data) AND in the client component (show locked UI for insufficient tier). Never rely on client-side-only gating.
+
+---
+
+### Sprint directives
+
+**Sprint 1 — Ship within 2 weeks:**
+- Fix the TrialBanner tier1 bug (Frontend)
+- Replace fake $MROCKS chart data with Birdeye OHLCV API (Backend)
+- Verify and update mint addresses for all new DAO_COINS tokens in SwapPanel and lib/tokens.ts (Backend + Frontend)
+- Mobile responsive sidebar — slide-over drawer on mobile, bottom nav bar for the 5 most-used sections (Frontend)
+- Governance feed MVP: Snapshot GraphQL API, read-only proposal list, tier2+ gated, new sidebar nav item (Backend + Frontend)
+
+**Sprint 2 — Ship within 4 weeks:**
+- Treasury analytics: DeepDAO or on-chain RPC, per-DAO treasury value + asset breakdown, tier3 gated (Backend + Frontend)
+- Price alerts: Prisma PriceAlert model, cron job, notification bell in Sidebar, alert config UI in Watchlist (All agents)
+- Fix or remove social feed (Backend)
+- Token Detail page completion: developer metrics, community data, all charts working with real data (Backend + Frontend)
+
+**Sprint 3 — Ship within 6 weeks:**
+- Leaderboard points system: Prisma points field, point-awarding events, points display in sidebar (Backend + Frontend)
+- Governance voting history per token on Token Detail page (Backend + Frontend)
+- Email notification delivery via Resend for tier3 price alerts (Backend)
+- $MROCKS staking position tracker via Meteora API (Backend + Frontend)
+
+---
 
 ## Backend Dev
 

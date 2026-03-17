@@ -234,6 +234,7 @@ export default function PricingPage() {
               onError={e => { (e.target as HTMLImageElement).src = MOONSTER_PORTRAIT }} />
             <span className="font-monster text-sm text-white">MOONMAP</span>
             <span className="text-xs font-mono" style={{ color: 'rgba(113,113,122,0.5)' }}>· Not financial advice</span>
+            <span className="text-xs font-mono" style={{ color: 'rgba(113,113,122,0.35)' }}>· by @ROWDY</span>
           </div>
           <div className="flex gap-6 text-xs font-mono" style={{ color: 'rgba(113,113,122,0.6)' }}>
             <a href="https://www.tensor.trade/trade/moonsters" target="_blank" rel="noopener noreferrer"

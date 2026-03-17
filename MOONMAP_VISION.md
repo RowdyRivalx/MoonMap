@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** March 17, 2026
-**Author:** CEO, MoonMap
+**Author:** @ROWDY
 
 ---
 

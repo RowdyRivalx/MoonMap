@@ -136,7 +136,7 @@ export default function DashboardClient({
         </div>
       )}
 
-      {(tier === 'free' || tier === 'tier1') && <TrialBanner trialExpiresAt={trialExpiresAt ?? null}/>}
+      {!isHolder && trialExpiresAt && <TrialBanner trialExpiresAt={trialExpiresAt} />}
 
       {/* Live Market Ticker */}
       {tickerTokens.length > 0 && (

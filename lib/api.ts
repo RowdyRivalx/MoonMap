@@ -525,6 +525,12 @@ export async function getMROCKSData(): Promise<MROCKSData | null> {
 }
 
 
+// Deterministic pseudo-random noise seeded by price + index — stable across renders
+function stableNoise(priceSeed: number, i: number): number {
+  const x = Math.sin(Math.floor(priceSeed * 1000) * 9301 + i * 49297 + 233) * 1000000
+  return (x - Math.floor(x)) - 0.5 // -0.5 to 0.5
+}
+
 export async function getMROCKSHistory(hours = 24): Promise<PriceHistory[]> {
   try {
     const res = await fetch(
@@ -536,14 +542,13 @@ export async function getMROCKSHistory(hours = 24): Promise<PriceHistory[]> {
     const pair = Array.isArray(data) ? data[0] : data?.pairs?.[0]
     if (!pair) return []
 
-    // Generate sparkline from DexScreener current price + 24h change
     const currentPrice = parseFloat(pair.priceUsd || '0')
     if (!currentPrice) return []
     const change = pair.priceChange?.h24 || 0
     const oldPrice = currentPrice / (1 + change / 100)
     return Array.from({ length: 24 }, (_, i) => ({
       timestamp: Date.now() - (23 - i) * 3600000,
-      price: oldPrice + (currentPrice - oldPrice) * (i / 23) + (Math.random() - 0.5) * currentPrice * 0.02,
+      price: oldPrice + (currentPrice - oldPrice) * (i / 23) + stableNoise(currentPrice, i) * currentPrice * 0.02,
     }))
   } catch {
     return []
@@ -579,15 +584,15 @@ export async function getMROCKSHistoryAll(): Promise<{
     return {
       h1: Array.from({ length: 60 }, (_, i) => ({
         timestamp: Date.now() - (59 - i) * 60000,
-        price: priceH1Start + (currentPrice - priceH1Start) * (i / 59) + (Math.random() - 0.5) * currentPrice * 0.005,
+        price: priceH1Start + (currentPrice - priceH1Start) * (i / 59) + stableNoise(currentPrice, i + 1000) * currentPrice * 0.005,
       })),
       d7: Array.from({ length: 7 * 24 }, (_, i) => ({
         timestamp: Date.now() - (7 * 24 - 1 - i) * 3600000,
-        price: price7dStart + (currentPrice - price7dStart) * (i / (7 * 24 - 1)) + (Math.random() - 0.5) * currentPrice * 0.02,
+        price: price7dStart + (currentPrice - price7dStart) * (i / (7 * 24 - 1)) + stableNoise(currentPrice, i + 2000) * currentPrice * 0.02,
       })),
       m1: Array.from({ length: 30 }, (_, i) => ({
         timestamp: Date.now() - (29 - i) * 86400000,
-        price: price1mStart + (currentPrice - price1mStart) * (i / 29) + (Math.random() - 0.5) * currentPrice * 0.04,
+        price: price1mStart + (currentPrice - price1mStart) * (i / 29) + stableNoise(currentPrice, i + 3000) * currentPrice * 0.04,
       })),
     }
   } catch {
