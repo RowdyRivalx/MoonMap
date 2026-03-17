@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const userId = session.user.id
     const sub = await getUserSubscription(userId)
-    const isPro = sub.tier === 'pro'
+    const isPro = sub.tier === 'tier2' || sub.tier === 'tier3'
 
     // Determine which coins to fetch
     const { searchParams } = new URL(req.url)
