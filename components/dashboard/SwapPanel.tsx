@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, ExternalLink, Loader2, AlertTriangle } from 'lucide-react'
 
-const MROCKS_MINT = 'HQtEXUxNh3Hb3BgQpqW4XCq3fcHr5JYiGABu61Fg82No'
+const MROCKS_MINT = 'moon3CP11XLvrAxUPBnPtueDEJvmjqAyZwPuq7wBC1y'
 const SOL_MINT    = 'So11111111111111111111111111111111111111112'
 const USDC_MINT   = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 const MOONSTER_IMG = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
@@ -16,12 +16,23 @@ const TOKEN_MINTS: Record<string, string> = {
   'axie-infinity': 'HNpdP2rL6FR3gHdoTSBLBEUPrCCTDdVEsMjRMpAGnJzF',
   apecoin: '4vMsoUT2BWatFweudnQM1xedRLfJgJ7hswhcpz4xgBTy',
   sushi: 'SUSHiMMjX1argfn7WB2bXcKGiMMPTmM9RFVcPHc9FFNA',
+  'curve-dao-token': 'CRVPF2nQRrezq2Tyq18s6DAho7HjDrsrUxqX4shfrpUY',
+  'compound-governance-token': 'BAoWfhRJq4FVWDZBwPynyx2HntC3XitE3RymAzXcGJVn',
+  'yearn-finance': 'CGFoqbySnUgTU5iPaAveTtgVZND7ChqeBnKBu3AYQhYe',
+  balancer: 'FDSLXJgs2tdzw8mFPUcSudAKkqVQLWdbpjQAJmmoJzGZ',
+  maker: 'EVu6ZdtPiSpteHRKuznVmAMBkcmP9ZqZexJkqUk7frUF',
+  ens: 'F9jmLbcfeiEMyMP3DBMczykAL9kMZh7HDkDaiMWp6Fgx',
+  gitcoin: 'EzgEw9qevbREonkg9LdPDyBNNm2KDuQfwb9kwyAVFLVL',
+  olympus: 'EyEfWq7vVfiy1WJPzNv2dNBoX1VoJQwHpFp6bNwBhdSs',
+  illuvium: 'C4kNoGdDexYsGKn97y1KEPWbw27i8RNSeM5NaJ35mkxa',
+  'ribbon-finance': '3P9xwxrU4AuRSYU6cR5hrXJMhzw4okdzyGxgSEv9pump',
+  'convex-finance': 'Gsui8MEE5C8nzsF8SLasivphmZv9n2V2WpM8Yj5Ww7a6',
 }
 
-function getOutputMint(tokenId: string): string {
+function getOutputMint(tokenId: string): string | null {
   if (!tokenId) return MROCKS_MINT
   if (tokenId.length > 30) return tokenId  // already a mint address
-  return TOKEN_MINTS[tokenId] || USDC_MINT
+  return TOKEN_MINTS[tokenId] || null
 }
 
 interface Props {
@@ -39,10 +50,18 @@ export default function SwapPanel({ token, onClose }: Props) {
     if (!token) return
 
     // Token changed — need full reinit
-    const outputMint = getOutputMint(token.id)
+    const inputMint = getOutputMint(token.id)
     activeTokenId.current = token.id
-    setStatus('loading')
     setErrorMsg('')
+
+    // No Solana mint — skip Jupiter init
+    if (!inputMint) {
+      setStatus('error')
+      setErrorMsg('no-solana-mint')
+      return
+    }
+
+    setStatus('loading')
 
     const rpc = process.env.NEXT_PUBLIC_HELIUS_API_KEY
       ? `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`
@@ -72,12 +91,14 @@ export default function SwapPanel({ token, onClose }: Props) {
               displayMode: 'integrated',
               integratedTargetId: containerId,
               endpoint: rpc,
+              strictTokenList: false,
               formProps: {
-                initialInputMint: SOL_MINT,
-                initialOutputMint: outputMint,
+                initialInputMint: inputMint,   // clicked token — top
+                initialOutputMint: SOL_MINT,   // SOL — bottom
                 fixedInputMint: false,
                 fixedOutputMint: false,
               },
+              defaultExplorer: 'Solscan',
               onSuccess: ({ txid }: any) => console.log('Swap success:', txid),
               onSwapError: ({ error }: any) => console.error('Swap error:', error),
             })
@@ -93,7 +114,7 @@ export default function SwapPanel({ token, onClose }: Props) {
       }
     }
 
-    const SCRIPT_ID = 'jupiter-terminal-script'
+    const SCRIPT_ID = 'jupiter-terminal-v4'
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
 
     if (existing && (window as any).Jupiter?.init) {
@@ -106,7 +127,7 @@ export default function SwapPanel({ token, onClose }: Props) {
       // Load fresh
       const script = document.createElement('script')
       script.id = SCRIPT_ID
-      script.src = 'https://terminal.jup.ag/main-v3.js'
+      script.src = 'https://terminal.jup.ag/main-v4.js'
       script.crossOrigin = 'anonymous'
       script.onload = () => setTimeout(doInit, 200)
       script.onerror = () => {
@@ -134,8 +155,10 @@ export default function SwapPanel({ token, onClose }: Props) {
 
   if (!token) return null
 
-  const outputMint = getOutputMint(token.id)
-  const jupUrl = `https://jup.ag/swap/SOL-${outputMint}`
+  const inputMint = getOutputMint(token.id)
+  const jupUrl = inputMint
+    ? `https://jup.ag/swap/${inputMint}-SOL`
+    : `https://app.uniswap.org/explore/tokens/ethereum?inputCurrency=ETH&outputCurrency=${token.symbol?.toLowerCase()}`
   const tokenImg = token.image || MOONSTER_IMG
 
   return (
@@ -226,20 +249,31 @@ export default function SwapPanel({ token, onClose }: Props) {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 p-6 text-center"
               style={{ background: 'rgba(7,3,18,0.98)' }}>
               <div className="w-12 h-12 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <AlertTriangle size={20} style={{ color: '#f87171' }} />
+                style={{ background: errorMsg === 'no-solana-mint' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${errorMsg === 'no-solana-mint' ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
+                <AlertTriangle size={20} style={{ color: errorMsg === 'no-solana-mint' ? '#fbbf24' : '#f87171' }} />
               </div>
               <div>
-                <p className="text-sm text-white font-medium mb-1">Swap terminal unavailable</p>
-                <p className="text-xs mb-4" style={{ color: 'rgba(113,113,122,0.7)' }}>
-                  {errorMsg || 'Could not load Jupiter'}
-                </p>
+                {errorMsg === 'no-solana-mint' ? (
+                  <>
+                    <p className="text-sm text-white font-medium mb-1">{token.symbol?.toUpperCase()} is an Ethereum token</p>
+                    <p className="text-xs mb-4" style={{ color: 'rgba(113,113,122,0.7)' }}>
+                      This token has no Solana liquidity. Trade it on Uniswap instead.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-white font-medium mb-1">Swap terminal unavailable</p>
+                    <p className="text-xs mb-4" style={{ color: 'rgba(113,113,122,0.7)' }}>
+                      {errorMsg || 'Could not load Jupiter'}
+                    </p>
+                  </>
+                )}
               </div>
               <a
                 href={jupUrl} target="_blank" rel="noopener noreferrer"
                 className="btn-primary text-sm flex items-center gap-2 px-5 py-2.5"
               >
-                Open in Jupiter <ExternalLink size={13} />
+                {errorMsg === 'no-solana-mint' ? `Trade ${token.symbol?.toUpperCase()} on Uniswap` : 'Open in Jupiter'} <ExternalLink size={13} />
               </a>
             </div>
           )}

@@ -4,9 +4,9 @@ import { Trophy, Crown, Star, Zap, Users, ExternalLink } from 'lucide-react'
 const MOONSTER_IMG = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
 
 const TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: string; rank: number }> = {
-  tier3: { label: 'Comet',        color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  icon: '⛓️', rank: 3 },
-  tier2: { label: 'Space Debris', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.3)',  icon: '☄️', rank: 2 },
-  tier1: { label: 'Holder',       color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  icon: '🌙', rank: 1 },
+  tier3: { label: 'MOONSTER',    color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  icon: '⛓️', rank: 3 },
+  tier2: { label: 'Moon Walker', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.3)',  icon: '☄️', rank: 2 },
+  tier1: { label: 'Astronaut',   color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  icon: '🌙', rank: 1 },
   free:  { label: 'Explorer',     color: '#71717a', bg: 'rgba(113,113,122,0.1)', border: 'rgba(113,113,122,0.2)', icon: '🔭', rank: 0 },
 }
 
@@ -88,7 +88,7 @@ export default function LeaderboardClient({ users, currentUserId }: Props) {
                     <p className="text-sm font-bold text-white truncate" style={{ fontFamily: 'Syne, sans-serif' }}>
                       {user.isCurrentUser ? '👤 You' : `${user.walletAddress.slice(0,4)}…${user.walletAddress.slice(-4)}`}
                     </p>
-                    <span className="trait-badge trait-badge-gold text-xs">Comet</span>
+                    <span className="trait-badge trait-badge-gold text-xs">MOONSTER</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -184,7 +184,7 @@ export default function LeaderboardClient({ users, currentUserId }: Props) {
           <img src={MOONSTER_IMG} alt="" className="w-10 h-10 rounded-xl object-cover" style={{ border: '1px solid rgba(245,158,11,0.3)' }}/>
           <div>
             <p className="font-bold text-sm text-white" style={{ fontFamily: 'Syne, sans-serif' }}>Want to climb the leaderboard?</p>
-            <p className="text-xs" style={{ color: 'rgba(113,113,122,0.7)' }}>Get a Moonster with Blue Chain for Tier 3 status</p>
+            <p className="text-xs" style={{ color: 'rgba(113,113,122,0.7)' }}>Get a Moonster with Blue Chain for MOONSTER status</p>
           </div>
         </div>
         <a href="https://www.tensor.trade/trade/moonsters" target="_blank" rel="noopener noreferrer"

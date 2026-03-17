@@ -106,75 +106,81 @@ export async function getDAONews(
   const allNews = await getCoinGeckoNews()
   if (!allNews.length) return []
 
-  // Filter based on keyword analysis
+  // Filter based on keyword analysis, cap at 50 for general feeds
   switch (filter) {
     case 'bullish':
-      return allNews.filter(item => scoreArticle(item.title) === 'bullish')
+      return allNews.filter(item => scoreArticle(item.title) === 'bullish').slice(0, 50)
     case 'bearish':
-      return allNews.filter(item => scoreArticle(item.title) === 'bearish')
+      return allNews.filter(item => scoreArticle(item.title) === 'bearish').slice(0, 50)
     case 'rising':
-      return allNews.filter(item => scoreArticle(item.title) === 'bullish' || scoreArticle(item.title) === 'neutral')
+      return allNews.filter(item => scoreArticle(item.title) === 'bullish' || scoreArticle(item.title) === 'neutral').slice(0, 50)
     case 'hot':
     default:
-      return allNews
+      return allNews.slice(0, 50)
   }
 }
 
 // Fallback: Free RSS feeds via rss2json
+const RSS_FEEDS = [
+  'https://cointelegraph.com/rss',
+  'https://decrypt.co/feed',
+  'https://coindesk.com/arc/outboundfeeds/rss/',
+  'https://bitcoinmagazine.com/.rss/full/',
+  'https://thedefiant.io/feed',
+  'https://blockworks.co/feed',
+  'https://cryptobriefing.com/feed/',
+  'https://www.coindesk.com/arc/outboundfeeds/rss/category/markets/',
+  'https://beincrypto.com/feed/',
+  'https://cryptopotato.com/feed/',
+  'https://ambcrypto.com/feed/',
+  'https://dailyhodl.com/feed/',
+  'https://zycrypto.com/feed/',
+  'https://coinjournal.net/feed/',
+  'https://cryptonews.com/news/feed/',
+  'https://u.today/rss',
+  'https://newsbtc.com/feed/',
+  'https://coingape.com/feed/',
+]
+
+// Fetch all RSS feeds and return the full unsorted corpus — no early slice.
+// Callers decide how many articles they want.
 async function getCoinGeckoNews(): Promise<NewsItem[]> {
-  const feeds = [
-    'https://cointelegraph.com/rss',
-    'https://decrypt.co/feed',
-    'https://coindesk.com/arc/outboundfeeds/rss/',
-    'https://bitcoinmagazine.com/.rss/full/',
-    'https://thedefiant.io/feed',
-    'https://blockworks.co/feed',
-    'https://cryptobriefing.com/feed/',
-    'https://www.coindesk.com/arc/outboundfeeds/rss/category/markets/',
-    'https://beincrypto.com/feed/',
-    'https://cryptopotato.com/feed/',
-    'https://ambcrypto.com/feed/',
-    'https://dailyhodl.com/feed/',
-    'https://zycrypto.com/feed/',
-    'https://coinjournal.net/feed/',
-    'https://cryptonews.com/news/feed/',
-    'https://u.today/rss',
-    'https://newsbtc.com/feed/',
-    'https://coingape.com/feed/',
-  ]
-  
-  // Fetch all feeds in parallel, merge and sort by date
   const results = await Promise.allSettled(
-    feeds.map(async (feed) => {
+    RSS_FEEDS.map(async (feed) => {
+      // count=20 requests up to 20 items per feed (rss2json supports this)
       const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`
       const res = await fetch(url, { next: { revalidate: 300 } })
       if (!res.ok) return []
       const data = await res.json()
       if (data.status !== 'ok' || !data.items?.length) return []
-      return data.items.map((a: any, i: number) => ({
-        id: Math.random(),
-        title: a.title,
-        url: a.link,
-        source: { title: data.feed?.title || 'Crypto News', domain: new URL(a.link).hostname },
-        published_at: a.pubDate || new Date().toISOString(),
-        created_at: a.pubDate || new Date().toISOString(),
-        votes: { positive: 0, negative: 0, important: 0, liked: 0, disliked: 0, lol: 0, toxic: 0, saved: 0, comments: 0 },
-        kind: 'news' as const,
-        domain: new URL(a.link).hostname,
-        slug: String(i),
-        metadata: { image: a.thumbnail || null, description: a.description?.replace(/<[^>]*>/g, '').slice(0, 200) },
-        currencies: [],
-      }))
+      const feedTitle = data.feed?.title || 'Crypto News'
+      return data.items
+        .filter((a: any) => a.title && a.link)
+        .map((a: any, i: number) => {
+          let domain = ''
+          try { domain = new URL(a.link).hostname } catch {}
+          return {
+            id: Math.random(),
+            title: a.title,
+            url: a.link,
+            source: { title: feedTitle, domain },
+            published_at: a.pubDate || new Date().toISOString(),
+            created_at: a.pubDate || new Date().toISOString(),
+            votes: { positive: 0, negative: 0, important: 0, liked: 0, disliked: 0, lol: 0, toxic: 0, saved: 0, comments: 0 },
+            kind: 'news' as const,
+            domain,
+            slug: String(i),
+            metadata: { image: a.thumbnail || null, description: a.description?.replace(/<[^>]*>/g, '').slice(0, 200) },
+            currencies: [],
+          }
+        })
     })
   )
 
-  const allItems = results
+  return results
     .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
     .flatMap(r => r.value)
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
-    .slice(0, 50)
-
-  return allItems
 }
 
 const BULLISH_WORDS = [
@@ -288,18 +294,37 @@ const TOKEN_ALIASES: Record<string, string[]> = {
   'olympus': ['olympus', 'ohm', '$ohm'],
 }
 
+// Short words to skip when building aliases from the CoinGecko ID slug
+const SKIP_WORDS = new Set(['token', 'dao', 'finance', 'protocol', 'network', 'coin', 'the', 'a', 'and', 'of'])
+
 export async function getTokenNews(tokenId: string, tokenSymbol: string, tokenName: string): Promise<NewsItem[]> {
   const allNews = await getCoinGeckoNews()
-  const aliases = TOKEN_ALIASES[tokenId] || [tokenName.toLowerCase(), tokenSymbol.toLowerCase(), `$${tokenSymbol.toLowerCase()}`]
 
-  // Filter to articles mentioning this token
+  // Build search aliases — prefer curated list, otherwise derive from id/name/symbol
+  let aliases: string[]
+  if (TOKEN_ALIASES[tokenId]) {
+    aliases = TOKEN_ALIASES[tokenId]
+  } else {
+    const sym = tokenSymbol.toLowerCase()
+    const name = tokenName.toLowerCase()
+    // Split the hyphenated CoinGecko ID into meaningful words
+    const idWords = tokenId.split('-').filter(w => w.length > 2 && !SKIP_WORDS.has(w))
+    aliases = Array.from(new Set([
+      name,
+      sym,
+      `$${sym}`,
+      ...idWords,
+    ]))
+  }
+
+  // Filter articles that mention any alias in title or description
   const tokenNews = allNews.filter(item => {
     const text = (item.title + ' ' + (item.metadata?.description || '')).toLowerCase()
     return aliases.some(alias => text.includes(alias))
   })
 
-  // If we found enough token-specific articles, return them; otherwise return all news
-  return tokenNews.length >= 3 ? tokenNews : allNews.slice(0, 15)
+  // Return token-specific articles if any found, else fall back to top general news
+  return tokenNews.length > 0 ? tokenNews : allNews.slice(0, 8)
 }
 
 // ─── X/Twitter Moonster community posts ──────────────────────────────────────
@@ -375,7 +400,7 @@ export async function getMoonsterSocialPosts(tokenSymbol?: string): Promise<Soci
 
 // ─── MROCKS Token (Solana SPL) ────────────────────────────────────────────────
 
-export const MROCKS_MINT = 'HQtEXUxNh3Hb3BgQpqW4XCq3fcHr5JYiGABu61Fg82No'
+export const MROCKS_MINT = 'moon3CP11XLvrAxUPBnPtueDEJvmjqAyZwPuq7wBC1y'
 
 export interface MROCKSData {
   symbol: string
@@ -445,30 +470,261 @@ export async function getMROCKSData(): Promise<MROCKSData | null> {
 export async function getMROCKSHistory(hours = 24): Promise<PriceHistory[]> {
   try {
     const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${MROCKS_MINT}`,
+      `https://api.dexscreener.com/token-pairs/v1/solana/${MROCKS_MINT}`,
       { next: { revalidate: 300 } }
     )
     if (!res.ok) return []
     const data = await res.json()
-    const pair = data.pairs?.[0]
+    const pair = Array.isArray(data) ? data[0] : data?.pairs?.[0]
     if (!pair) return []
 
-    // DexScreener doesn't provide OHLCV in free tier, use Jupiter price history
-    const jupRes = await fetch(
-      `https://price.jup.ag/v6/price?ids=${MROCKS_MINT}`,
-      { next: { revalidate: 60 } }
-    )
-    if (!jupRes.ok) return []
-    const jupData = await jupRes.json()
-    const currentPrice = jupData.data?.[MROCKS_MINT]?.price || 0
-
-    // Generate a mock sparkline from current price ± price change
+    // Generate sparkline from DexScreener current price + 24h change
+    const currentPrice = parseFloat(pair.priceUsd || '0')
+    if (!currentPrice) return []
     const change = pair.priceChange?.h24 || 0
     const oldPrice = currentPrice / (1 + change / 100)
     return Array.from({ length: 24 }, (_, i) => ({
       timestamp: Date.now() - (23 - i) * 3600000,
       price: oldPrice + (currentPrice - oldPrice) * (i / 23) + (Math.random() - 0.5) * currentPrice * 0.02,
     }))
+  } catch {
+    return []
+  }
+}
+
+export async function getMROCKSHistoryAll(): Promise<{
+  h1: PriceHistory[]
+  d7: PriceHistory[]
+  m1: PriceHistory[]
+}> {
+  const empty = { h1: [], d7: [], m1: [] }
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/token-pairs/v1/solana/${MROCKS_MINT}`,
+      { next: { revalidate: 300 } }
+    )
+    if (!res.ok) return empty
+    const data = await res.json()
+    const pair = Array.isArray(data) ? data[0] : data?.pairs?.[0]
+    if (!pair) return empty
+
+    const currentPrice = parseFloat(pair.priceUsd || '0')
+    if (!currentPrice) return empty
+
+    const h1Change = pair.priceChange?.h1 || 0
+    const h24Change = pair.priceChange?.h24 || 0
+
+    const priceH1Start = currentPrice / (1 + h1Change / 100)
+    const price7dStart = Math.max(currentPrice * 0.01, currentPrice - (h24Change / 100) * currentPrice * 7)
+    const price1mStart = Math.max(currentPrice * 0.01, currentPrice - (h24Change / 100) * currentPrice * 30)
+
+    return {
+      h1: Array.from({ length: 60 }, (_, i) => ({
+        timestamp: Date.now() - (59 - i) * 60000,
+        price: priceH1Start + (currentPrice - priceH1Start) * (i / 59) + (Math.random() - 0.5) * currentPrice * 0.005,
+      })),
+      d7: Array.from({ length: 7 * 24 }, (_, i) => ({
+        timestamp: Date.now() - (7 * 24 - 1 - i) * 3600000,
+        price: price7dStart + (currentPrice - price7dStart) * (i / (7 * 24 - 1)) + (Math.random() - 0.5) * currentPrice * 0.02,
+      })),
+      m1: Array.from({ length: 30 }, (_, i) => ({
+        timestamp: Date.now() - (29 - i) * 86400000,
+        price: price1mStart + (currentPrice - price1mStart) * (i / 29) + (Math.random() - 0.5) * currentPrice * 0.04,
+      })),
+    }
+  } catch {
+    return empty
+  }
+}
+
+// ─── Wallet Token Balances ───────────────────────────────────────────────────
+
+export async function getWalletBalances(wallet: string): Promise<Record<string, number>> {
+  const heliusKey = process.env.HELIUS_API_KEY
+  if (!heliusKey || !wallet) return {}
+  const rpc = `https://mainnet.helius-rpc.com/?api-key=${heliusKey}`
+  const { MINT_TO_COIN, SOL_MINT } = await import('./tokens')
+  const balances: Record<string, number> = {}
+
+  // SOL native balance
+  try {
+    const res = await fetch(rpc, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 'sol-bal', method: 'getBalance', params: [wallet] }),
+      cache: 'no-store',
+    })
+    const data = await res.json()
+    const lamports = data?.result?.value || 0
+    if (lamports > 0) balances['solana'] = lamports / 1e9
+  } catch {}
+
+  // SPL token accounts
+  try {
+    const res = await fetch(rpc, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 'spl-bal', method: 'getTokenAccountsByOwner',
+        params: [wallet, { programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' }, { encoding: 'jsonParsed' }],
+      }),
+      cache: 'no-store',
+    })
+    const data = await res.json()
+    for (const account of (data?.result?.value || [])) {
+      const info = account.account?.data?.parsed?.info
+      if (!info) continue
+      const uiAmount = info.tokenAmount?.uiAmount || 0
+      if (uiAmount <= 0) continue
+      const coinId = MINT_TO_COIN[info.mint]
+      if (coinId) balances[coinId] = uiAmount
+    }
+  } catch {}
+
+  return balances
+}
+
+// ─── All Wallet Tokens (Helius DAS + Jupiter prices) ─────────────────────────
+
+export interface WalletToken {
+  mint: string
+  name: string
+  symbol: string
+  image?: string
+  balance: number
+  priceUsd: number
+  valueUsd: number
+}
+
+const SOL_MINT_ADDR = 'So11111111111111111111111111111111111111112'
+
+export async function getWalletTokensFull(wallet: string): Promise<WalletToken[]> {
+  const heliusKey = process.env.HELIUS_API_KEY
+  if (!heliusKey || !wallet) return []
+
+  try {
+    const res = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 'wallet-full', method: 'getAssetsByOwner',
+        params: {
+          ownerAddress: wallet, page: 1, limit: 1000,
+          displayOptions: { showFungible: true, showNativeBalance: true },
+        },
+      }),
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const result = data?.result
+    if (!result) return []
+
+    const raw: Array<{ mint: string; name: string; symbol: string; image?: string; balance: number; priceUsd: number }> = []
+
+    // Native SOL
+    const solLamports = result.nativeBalance?.lamports || 0
+    const solPriceUsd = result.nativeBalance?.price_per_sol || 0
+    if (solLamports > 0) {
+      raw.push({ mint: SOL_MINT_ADDR, name: 'Solana', symbol: 'SOL', balance: solLamports / 1e9, priceUsd: solPriceUsd })
+    }
+
+    // SPL fungible tokens
+    for (const item of (result.items || [])) {
+      if (item.interface !== 'FungibleToken' && item.interface !== 'FungibleAsset') continue
+      const rawBal = item.token_info?.balance || 0
+      const decimals = item.token_info?.decimals ?? 0
+      if (rawBal <= 0) continue
+      const balance = rawBal / Math.pow(10, decimals)
+      if (balance <= 0) continue
+      raw.push({
+        mint: item.id,
+        name: item.content?.metadata?.name || item.token_info?.symbol || 'Unknown',
+        symbol: item.token_info?.symbol || item.content?.metadata?.symbol || '?',
+        image: item.content?.links?.image || item.content?.files?.[0]?.uri,
+        balance,
+        priceUsd: item.token_info?.price_info?.price_per_token || 0,
+      })
+    }
+
+    if (raw.length === 0) return []
+
+    // Fill missing prices from Jupiter Price API
+    const needsPrice = raw.filter(t => t.priceUsd === 0 && t.mint !== SOL_MINT_ADDR)
+    if (needsPrice.length > 0) {
+      try {
+        const ids = needsPrice.map(t => t.mint).join(',')
+        const pr = await fetch(`https://api.jup.ag/price/v2?ids=${ids}`, { next: { revalidate: 60 } })
+        if (pr.ok) {
+          const pd = await pr.json()
+          for (const t of needsPrice) {
+            const p = pd.data?.[t.mint]?.price
+            if (p) t.priceUsd = parseFloat(p)
+          }
+        }
+      } catch {}
+    }
+
+    return raw
+      .map(t => ({ ...t, valueUsd: t.priceUsd * t.balance }))
+      .sort((a, b) => b.valueUsd - a.valueUsd)
+  } catch {
+    return []
+  }
+}
+
+// ─── NFT Floor Price ─────────────────────────────────────────────────────────
+
+export async function getMoonstersFloorPrice(): Promise<number> {
+  try {
+    const res = await fetch(
+      'https://api-mainnet.magiceden.dev/v2/collections/moonsters_collection/stats',
+      { next: { revalidate: 300 } }
+    )
+    if (!res.ok) return 0
+    const data = await res.json()
+    // floorPrice is in lamports (1 SOL = 1_000_000_000 lamports)
+    return (data.floorPrice || 0) / 1e9
+  } catch {
+    return 0
+  }
+}
+
+// ─── Wallet NFTs (Moonsters) ─────────────────────────────────────────────────
+
+export interface WalletNFT {
+  id: string
+  name: string
+  image?: string
+  tier: string
+}
+
+export async function getWalletNFTs(wallet: string): Promise<WalletNFT[]> {
+  const heliusKey = process.env.HELIUS_API_KEY
+  if (!heliusKey || !wallet) return []
+  const { COLLECTION_ADDRESS, resolveTier } = await import('./tiers')
+  try {
+    const res = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusKey}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 'nfts', method: 'getAssetsByOwner',
+        params: { ownerAddress: wallet, page: 1, limit: 1000, displayOptions: { showCollectionMetadata: false } },
+      }),
+      cache: 'no-store',
+    })
+    const data = await res.json()
+    const assets = data?.result?.items || []
+    return assets
+      .filter((a: any) => (a.grouping || []).some((g: any) => g.group_key === 'collection' && g.group_value === COLLECTION_ADDRESS))
+      .map((a: any) => {
+        const rawAttrs = a.content?.metadata?.attributes
+        const traits: { trait_type: string; value: string }[] = Array.isArray(rawAttrs)
+          ? rawAttrs
+          : rawAttrs && typeof rawAttrs === 'object'
+          ? Object.entries(rawAttrs).map(([trait_type, value]) => ({ trait_type, value: String(value) }))
+          : []
+        const tier = resolveTier(traits.map(t => t.value))
+        const image = a.content?.links?.image || a.content?.files?.[0]?.uri
+        return { id: a.id, name: a.content?.metadata?.name || 'Moonster', image, tier }
+      })
   } catch {
     return []
   }

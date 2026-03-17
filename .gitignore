@@ -1,3 +1,8 @@
 node_modules/
 .env
 .env.local
+.next/
+.cache/
+.DS_Store
+*.tsbuildinfo
+postcss.config.json~

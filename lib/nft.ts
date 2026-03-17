@@ -41,8 +41,8 @@ export async function checkNFTOwnership(walletAddress: string): Promise<NFTCheck
     const data = await res.json()
     const assets = data?.result?.items || []
 
-    // Find any asset belonging to our collection
-    const collectionNFT = assets.find((asset: any) => {
+    // Find ALL assets belonging to our collection
+    const collectionNFTs = assets.filter((asset: any) => {
       const groups = asset.grouping || []
       return groups.some(
         (g: any) =>
@@ -51,39 +51,51 @@ export async function checkNFTOwnership(walletAddress: string): Promise<NFTCheck
       )
     })
 
-    if (!collectionNFT) {
+    if (!collectionNFTs.length) {
       console.log('No Moonster found in wallet')
       return { hasNFT: false, tier: 'free' }
     }
 
-    console.log('Found Moonster:', collectionNFT.id)
+    console.log(`Found ${collectionNFTs.length} Moonster(s):`, collectionNFTs.map((n: any) => n.id).join(', '))
 
-    // Extract traits — Metaplex Core uses a flat object, not an array
-    const rawAttrs = collectionNFT.content?.metadata?.attributes
-    let traits: { trait_type: string; value: string }[] = []
+    // Resolve tier for each NFT and pick the best one
+    const TIER_RANK: Record<TierKey, number> = { free: 0, tier1: 1, tier2: 2, tier3: 3 }
+    let bestTier: TierKey = 'tier1'
+    let bestNFT = collectionNFTs[0]
+    let bestTraits: { trait_type: string; value: string }[] = []
 
-    if (Array.isArray(rawAttrs)) {
-      // Standard format: [{trait_type, value}]
-      traits = rawAttrs
-    } else if (rawAttrs && typeof rawAttrs === 'object') {
-      // Metaplex Core format: {"Base": "Dark Orc Red Beard", "Eyes": "..."}
-      traits = Object.entries(rawAttrs).map(([trait_type, value]) => ({
-        trait_type,
-        value: String(value),
-      }))
+    for (const nft of collectionNFTs) {
+      const rawAttrs = nft.content?.metadata?.attributes
+      let traits: { trait_type: string; value: string }[] = []
+
+      if (Array.isArray(rawAttrs)) {
+        traits = rawAttrs
+      } else if (rawAttrs && typeof rawAttrs === 'object') {
+        traits = Object.entries(rawAttrs).map(([trait_type, value]) => ({
+          trait_type,
+          value: String(value),
+        }))
+      }
+
+      const traitValues = traits.map((t) => t.value)
+      const tier = resolveTier(traitValues)
+      console.log(`Moonster ${nft.id} traits: ${traits.map(t => `${t.trait_type}: ${t.value}`).join(', ')} → ${tier}`)
+
+      if (TIER_RANK[tier] > TIER_RANK[bestTier]) {
+        bestTier = tier
+        bestNFT = nft
+        bestTraits = traits
+      } else if (TIER_RANK[tier] === TIER_RANK[bestTier] && !bestTraits.length) {
+        bestTraits = traits
+      }
     }
 
-    console.log('Traits:', traits.map(t => `${t.trait_type}: ${t.value}`).join(', '))
-
-    const traitValues = traits.map((t) => t.value)
-    const tier = resolveTier(traitValues)
-
-    console.log('Resolved tier:', tier)
+    console.log('Best tier across all Moonsters:', bestTier)
 
     return {
       hasNFT: true,
-      tier,
-      nftFound: { id: collectionNFT.id, traits },
+      tier: bestTier,
+      nftFound: { id: bestNFT.id, traits: bestTraits },
     }
   } catch (err) {
     console.error('NFT check error:', err)

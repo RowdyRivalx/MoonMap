@@ -5,8 +5,9 @@ import { signOut } from 'next-auth/react'
 import { LayoutDashboard, Star, Newspaper, Settings, LogOut, TrendingUp, Rocket, Image, BarChart2 } from 'lucide-react'
 import type { TierFeatures, TierKey } from '@/lib/tiers'
 
-const MOONSTER_IMG = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
+const MOONSTER_IMG  = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
 const MOONSTER_JPEG = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafkreiafltcgo34ly6up3b2qymc3wie75dsiorcgkiafrpdvsaygoe2cmy'
+const MOONSTERS_LOGO = 'https://moonsters.io/wp-content/uploads/2023/01/moonsters-logo-1.png'
 
 interface Props {
   user: { wallet?: string }
@@ -27,9 +28,9 @@ const NAV = [
 
 const TIER_META: Record<TierKey, { label: string; color: string; bg: string; border: string; glow: string; icon: string }> = {
   free:  { label: 'Free',         color: '#71717a', bg: 'rgba(63,63,70,0.15)',    border: 'rgba(63,63,70,0.3)',     glow: '',                                    icon: '🌑' },
-  tier1: { label: 'Holder',       color: '#34d399', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.22)',  glow: '0 0 12px rgba(16,185,129,0.18)',      icon: '🌙' },
-  tier2: { label: 'Space Debris', color: '#a78bfa', bg: 'rgba(139,92,246,0.1)',   border: 'rgba(139,92,246,0.28)',  glow: '0 0 14px rgba(139,92,246,0.22)',      icon: '☄️' },
-  tier3: { label: 'Comet',        color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   glow: '0 0 18px rgba(245,158,11,0.28)',      icon: '⛓️' },
+  tier1: { label: 'Astronaut',   color: '#34d399', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.22)',  glow: '0 0 12px rgba(16,185,129,0.18)',      icon: '🌙' },
+  tier2: { label: 'Moon Walker', color: '#a78bfa', bg: 'rgba(139,92,246,0.1)',   border: 'rgba(139,92,246,0.28)',  glow: '0 0 14px rgba(139,92,246,0.22)',      icon: '☄️' },
+  tier3: { label: 'MOONSTER',    color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   glow: '0 0 18px rgba(245,158,11,0.28)',      icon: '⛓️' },
 }
 
 export default function DashboardSidebar({ user, features, tier }: Props) {
@@ -45,18 +46,18 @@ export default function DashboardSidebar({ user, features, tier }: Props) {
       <div className="px-4 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(139,92,246,0.08)' }}>
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
           <div className="relative flex-shrink-0">
-            <div className="absolute inset-0 rounded-xl blur-lg opacity-60 group-hover:opacity-90 transition-opacity"
-              style={{ background: 'rgba(124,58,237,0.5)' }} />
+            <div className="absolute inset-0 rounded-full blur-md opacity-70 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'rgba(163,255,71,0.3)' }} />
             <div className="moonster-ring">
-              <img src={MOONSTER_IMG} alt="MoonMap"
+              <img src={MOONSTERS_LOGO} alt="MoonMap"
                 className="relative w-9 h-9 object-cover"
                 style={{ borderRadius: '50%' }}
-                onError={e => { (e.target as HTMLImageElement).src = MOONSTER_JPEG }} />
+                onError={e => { (e.target as HTMLImageElement).src = MOONSTER_IMG }} />
             </div>
           </div>
           <div>
-            <p className="font-display font-bold text-sm text-white leading-none tracking-wide">MoonMap</p>
-            <p className="font-mono text-[8px] mt-0.5 tracking-widest" style={{ color: 'rgba(139,92,246,0.55)' }}>DAO INTELLIGENCE</p>
+            <p className="font-monster text-sm text-white leading-none" style={{ letterSpacing: '0.08em' }}>MOONMAP</p>
+            <p className="font-mono text-[8px] mt-0.5 tracking-widest" style={{ color: 'rgba(163,255,71,0.5)' }}>DAO INTELLIGENCE</p>
           </div>
         </Link>
       </div>

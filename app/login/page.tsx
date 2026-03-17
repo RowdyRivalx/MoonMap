@@ -151,10 +151,10 @@ export default function LoginPage() {
           <p className="text-[9px] font-bold font-mono mb-3" style={{ color: 'rgba(139,92,246,0.5)' }}>ACCESS TIERS</p>
           <div className="space-y-2.5">
             {[
-              { dot: 'bg-zinc-600',  label: 'No NFT',                desc: '10 min free trial — Tier 1 access' },
-              { dot: 'bg-emerald-500', label: 'Any Moonster',        desc: 'Tier 1 — prices, news, 10 slots' },
-              { dot: 'bg-violet-500',  label: 'Special traits',      desc: 'Tier 2 — sentiment + 50 slots' },
-              { dot: 'bg-amber-400',   label: 'Blue Chain',          desc: 'Tier 3 — governance & treasury' },
+              { dot: 'bg-zinc-600',  label: 'No NFT',                desc: '10 min free trial — Astronaut access' },
+              { dot: 'bg-emerald-500', label: 'Any Moonster',        desc: 'Astronaut — prices, news, 10 slots' },
+              { dot: 'bg-violet-500',  label: 'Special traits',      desc: 'Moon Walker — sentiment + 50 slots' },
+              { dot: 'bg-amber-400',   label: 'Blue Chain',          desc: 'MOONSTER — governance & treasury' },
             ].map(({ dot, label, desc }) => (
               <div key={label} className="flex items-center gap-2.5">
                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />

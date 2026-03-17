@@ -10,12 +10,13 @@ import SwapPanel from './SwapPanel'
 
 const MOONSTER_IMG = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
 
-type Period = '7d' | '30d'
+type Period = '1H' | '7D' | '1M'
 
 interface Props {
   token: any
-  history30d: PriceHistory[]
+  history1d: PriceHistory[]
   history7d: PriceHistory[]
+  history30d: PriceHistory[]
   news: NewsItem[]
   socialPosts?: SocialPost[]
   tier: string
@@ -23,9 +24,9 @@ interface Props {
 
 function formatChartDate(ts: number, period: Period) {
   const d = new Date(ts)
-  return period === '7d'
-    ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (period === '1H') return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  if (period === '7D') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -38,14 +39,14 @@ const CustomTooltip = ({ active, payload }: any) => {
   )
 }
 
-export default function TokenDetailClient({ token, history30d, history7d, news, socialPosts = [], tier }: Props) {
+export default function TokenDetailClient({ token, history1d, history7d, history30d, news, socialPosts = [], tier }: Props) {
   const router = useRouter()
-  const [period, setPeriod] = useState<Period>('30d')
+  const [period, setPeriod] = useState<Period>('1M')
   const [showSwap, setShowSwap] = useState(false)
   const [watchlisted, setWatchlisted] = useState(false)
   const [activeTab, setActiveTab] = useState<'news' | 'community'>('news')
 
-  const history = period === '7d' ? history7d : history30d
+  const history = period === '1H' ? history1d : period === '7D' ? history7d : history30d
   const chartData = history.map(h => ({ time: h.timestamp, price: h.price, label: formatChartDate(h.timestamp, period) }))
 
   const change24 = token.price_change_percentage_24h || 0
@@ -157,7 +158,7 @@ export default function TokenDetailClient({ token, history30d, history7d, news, 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-medium">Price Chart</h2>
           <div className="flex gap-1 bg-zinc-800 rounded-lg p-0.5">
-            {(['7d', '30d'] as Period[]).map(p => (
+            {(['1H', '7D', '1M'] as Period[]).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${period === p ? 'bg-violet-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}>
                 {p}
@@ -215,7 +216,7 @@ export default function TokenDetailClient({ token, history30d, history7d, news, 
           <div className="flex gap-1 bg-zinc-800 rounded-lg p-0.5 mb-4">
             <button onClick={() => setActiveTab('news')}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'news' ? 'bg-violet-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}>
-              📰 Latest News
+              📰 {token.symbol?.toUpperCase()} News
             </button>
             <button onClick={() => setActiveTab('community')}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'community' ? 'bg-violet-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}>

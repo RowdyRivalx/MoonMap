@@ -1,23 +1,46 @@
 'use client'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowRight, BarChart3, Shield, Zap, Globe, TrendingUp, Users, Wallet } from 'lucide-react'
 
-const MOONSTER_IMG = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
+const MOONSTER_PORTRAIT  = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
+const MOONSTERS_LOGO     = 'https://moonsters.io/wp-content/uploads/2023/01/moonsters-logo-1.png'
+const MOONSTERS_WORDMARK = 'https://moonsters.io/wp-content/uploads/2023/01/Moonsters-With-Eyes-1-300x53.png'
+const CHAR_1 = 'https://moonsters.io/wp-content/uploads/2023/03/Character-1.png'
+const CHAR_2 = 'https://moonsters.io/wp-content/uploads/2023/03/Character-2.png'
+const CHAR_4 = 'https://moonsters.io/wp-content/uploads/2023/03/Character-4.png'
+// Swirling neon hero background from moonsters.io
+const NEON_BG = 'https://moonsters.io/wp-content/uploads/2023/01/Image-3.jpg'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-zinc-950">
-      {/* Nav */}
-      <nav className="border-b border-zinc-800 px-6 py-4">
+    <div className="min-h-screen" style={{ background: 'var(--c-bg)' }}>
+
+      {/* ── Nav ──────────────────────────────────────────────────────────────── */}
+      <nav style={{ borderBottom: '1px solid rgba(163,255,71,0.1)', background: 'rgba(4,1,14,0.85)', backdropFilter: 'blur(20px)' }}
+        className="sticky top-0 z-50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={MOONSTER_IMG} alt="MoonMap" className="w-8 h-8 rounded-lg object-cover" />
-            <span className="font-bold text-lg tracking-tight">MoonMap</span>
+          <div className="flex items-center gap-3">
+            {/* Circular badge seal from moonsters.io */}
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 rounded-full blur-md" style={{ background: 'rgba(163,255,71,0.25)' }} />
+              <img
+                src={MOONSTERS_LOGO}
+                alt="MoonMap"
+                className="relative w-9 h-9 rounded-full object-cover"
+                style={{ border: '1.5px solid rgba(163,255,71,0.4)' }}
+                onError={e => { (e.target as HTMLImageElement).src = MOONSTER_PORTRAIT }}
+              />
+            </div>
+            <span className="font-monster text-lg text-white tracking-wide">MOONMAP</span>
+            <span className="hidden sm:inline text-xs font-mono px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(163,255,71,0.08)', border: '1px solid rgba(163,255,71,0.2)', color: '#a3ff47' }}>
+              DAO INTEL
+            </span>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/pricing" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
-              Access tiers
+          <div className="flex items-center gap-4">
+            <Link href="/pricing" className="text-sm font-mono hidden sm:block"
+              style={{ color: 'rgba(163,139,250,0.7)' }}>
+              ACCESS TIERS
             </Link>
             <Link href="/login" className="btn-primary text-sm inline-flex items-center gap-2">
               <Wallet size={14} /> Connect Wallet
@@ -26,162 +49,254 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="px-6 pt-16 pb-12">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <section className="relative px-6 pt-16 pb-20 overflow-hidden">
+        {/* Swirling neon hero background */}
+        <div className="absolute inset-0 z-0">
+          <img src={NEON_BG} alt="" className="w-full h-full object-cover"
+            style={{ opacity: 0.08, filter: 'saturate(2) hue-rotate(10deg)' }}
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          <div className="absolute inset-0"
+            style={{ background: 'linear-gradient(to bottom, rgba(4,1,14,0.4) 0%, rgba(4,1,14,0.0) 40%, rgba(4,1,14,0.0) 60%, rgba(4,1,14,0.9) 100%)' }} />
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          {/* Left: copy */}
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-medium text-violet-400 bg-violet-400/10 border border-violet-400/20 px-3 py-1 rounded-full mb-6">
-              <Zap size={12} />
-              Live data · Updated every 60 seconds
+            {/* Moonsters wordmark badge */}
+            <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(163,255,71,0.06)', border: '1px solid rgba(163,255,71,0.2)' }}>
+              <img src={MOONSTERS_WORDMARK} alt="Moonsters" className="h-4 object-contain"
+                style={{ filter: 'invert(1) brightness(2)' }}
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <span className="text-xs font-mono" style={{ color: '#a3ff47' }}>OFFICIAL INTELLIGENCE HUB</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight">
+
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 leading-tight">
               DAO intelligence,{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">
+              <span className="monster-title" style={{ fontFamily: 'Bungee, Syne, sans-serif' }}>
                 built for Moonsters
               </span>
             </h1>
-            <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-              Track governance tokens, monitor treasury flows, analyze sentiment, and stay ahead
-              of proposals — your NFT unlocks your tier automatically.
+            <p className="text-xl mb-10 leading-relaxed" style={{ color: 'rgba(232,228,248,0.7)' }}>
+              Track governance tokens, monitor treasury flows, analyze sentiment — your NFT unlocks
+              your tier automatically.
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Link href="/login" className="btn-primary inline-flex items-center gap-2 text-base px-6 py-3">
                 <Wallet size={16} /> Connect Wallet <ArrowRight size={16} />
               </Link>
-              <a
-                href="https://www.tensor.trade/trade/moonsters"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary inline-flex items-center gap-2 text-base px-6 py-3"
-              >
-                Get a Moonster
+              <a href="https://www.tensor.trade/trade/moonsters" target="_blank" rel="noopener noreferrer"
+                className="btn-neon inline-flex items-center gap-2 text-base px-6 py-3">
+                Get a Moonster ↗
               </a>
             </div>
-            <p className="text-sm text-zinc-500 mt-4">Any wallet gets a free 10-minute trial · NFT holders get permanent access</p>
+            <p className="text-sm mt-4 font-mono" style={{ color: 'rgba(113,113,122,0.6)' }}>
+              Any wallet · 10-min free trial · NFT = permanent access
+            </p>
           </div>
 
-          {/* Moonster hero image */}
-          <div className="relative flex justify-center">
-            <div className="relative w-72 h-72 md:w-96 md:h-96">
-              <div className="absolute inset-0 bg-violet-600/20 rounded-3xl blur-3xl" />
-              <img
-                src={MOONSTER_IMG}
-                alt="Moonster #7952"
-                className="relative w-full h-full object-cover rounded-3xl border border-violet-600/30 shadow-2xl"
-              />
-              {/* Tier badge overlay */}
-              <div className="absolute -bottom-4 -right-4 bg-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                Blue Chain · Tier 3
+          {/* Right: three characters showcase */}
+          <div className="relative flex justify-center select-none">
+            <div className="relative w-80 h-80 md:w-[400px] md:h-[400px]">
+              {/* Ambient neon glow behind characters */}
+              <div className="absolute inset-0 rounded-full blur-3xl"
+                style={{ background: 'radial-gradient(circle, rgba(163,255,71,0.10) 0%, rgba(255,45,120,0.08) 45%, rgba(124,58,237,0.06) 70%, transparent 100%)' }} />
+
+              {/* Character 2 — top left, lime glow */}
+              <img src={CHAR_2} alt="Moonster"
+                className="absolute object-contain animate-rise"
+                style={{ width: '55%', top: '0%', left: '-8%',
+                  filter: 'drop-shadow(0 0 22px rgba(163,255,71,0.65))',
+                  animationDelay: '0.1s' }}
+                onError={e => { (e.target as HTMLImageElement).src = MOONSTER_PORTRAIT }} />
+
+              {/* Character 1 — center main, orange glow */}
+              <img src={CHAR_1} alt="Moonster"
+                className="absolute object-contain animate-rise"
+                style={{ width: '70%', top: '15%', left: '15%', zIndex: 2,
+                  filter: 'drop-shadow(0 0 32px rgba(255,107,43,0.7))',
+                  animationDelay: '0.0s' }}
+                onError={e => { (e.target as HTMLImageElement).src = MOONSTER_PORTRAIT }} />
+
+              {/* Character 4 — bottom right, magenta glow */}
+              <img src={CHAR_4} alt="Moonster"
+                className="absolute object-contain animate-rise-2"
+                style={{ width: '48%', bottom: '0%', right: '-6%',
+                  filter: 'drop-shadow(0 0 20px rgba(255,45,120,0.65))',
+                  animationDelay: '0.2s' }}
+                onError={e => { (e.target as HTMLImageElement).src = MOONSTER_PORTRAIT }} />
+
+              {/* Blue Chain badge */}
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap z-10
+                font-mono text-xs font-bold px-4 py-1.5 rounded-full glow-tier3"
+                style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.5)', color: '#fbbf24' }}>
+                ⛓️ Blue Chain · MOONSTER
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats bar */}
-      <div className="border-y border-zinc-800 py-6 px-6">
+      {/* ── Stats bar ────────────────────────────────────────────────────────── */}
+      <div className="px-6 py-6" style={{ borderTop: '1px solid rgba(163,255,71,0.08)', borderBottom: '1px solid rgba(163,255,71,0.08)', background: 'rgba(8,4,18,0.6)' }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
-            { label: 'DAOs tracked', value: '20+' },
-            { label: 'Data points / day', value: '2.4M' },
-            { label: 'News sources', value: '180+' },
-            { label: 'Active users', value: '1,200+' },
+            { label: 'DAOs tracked',      value: '20+',    color: '#a3ff47' },
+            { label: 'Data points / day', value: '2.4M',   color: '#a78bfa' },
+            { label: 'News sources',      value: '180+',   color: '#ff6ea8' },
+            { label: 'Active users',      value: '1,200+', color: '#22d3ee' },
           ].map((s) => (
             <div key={s.label}>
-              <div className="text-2xl font-bold text-zinc-100">{s.value}</div>
-              <div className="text-sm text-zinc-500 mt-0.5">{s.label}</div>
+              <div className="text-3xl font-monster mb-0.5" style={{ color: s.color }}>{s.value}</div>
+              <div className="text-xs font-mono" style={{ color: 'rgba(113,113,122,0.7)' }}>{s.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Features */}
+      {/* ── Features ─────────────────────────────────────────────────────────── */}
       <section className="px-6 py-24">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Everything you need to govern smarter</h2>
-            <p className="text-zinc-400 max-w-xl mx-auto">
-              Built specifically for Moonsters holders and DeFi power users.
+            <h2 className="font-monster text-3xl md:text-4xl mb-4"
+              style={{ color: 'white' }}>
+              Everything you need to{' '}
+              <span style={{ color: '#a3ff47' }}>govern smarter</span>
+            </h2>
+            <p className="font-mono text-sm" style={{ color: 'rgba(163,139,250,0.6)' }}>
+              Built for Moonsters holders and DeFi power users.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: TrendingUp, title: 'Live Price & Volume', desc: 'Real-time market data for all major governance tokens. Sparklines, 24h/7d changes, market cap, and volume in one glance.' },
-              { icon: Shield, title: 'Governance Tracker', desc: 'Never miss a proposal. Track active votes, quorum progress, and outcome history across Snapshot, Tally, and on-chain governance.', tier: 'Tier 3' },
-              { icon: Globe, title: 'Sentiment Analysis', desc: 'Aggregated sentiment from 180+ crypto news sources and social signals. Know the mood before you vote or trade.', tier: 'Tier 2' },
-              { icon: BarChart3, title: 'Treasury Analytics', desc: 'Monitor DAO treasury inflows, outflows, and asset composition. Spot diversification risks and liquidity runway.', tier: 'Tier 3' },
-              { icon: Users, title: 'Developer Activity', desc: 'GitHub commit frequency, PR merges, and contributor growth — the on-chain fundamentals of protocol health.', tier: 'Tier 3' },
-              { icon: Zap, title: 'Custom Watchlist', desc: 'Build a personal watchlist of the DAOs you care about. Base holders get 10 tokens, Tier 2+ unlocks 50.' },
+              { icon: TrendingUp, title: 'Live Price & Volume',    desc: 'Real-time market data for governance tokens. Sparklines, 24h/7d changes, market cap, and volume at a glance.', glow: 'rgba(34,211,238,0.15)', border: 'rgba(34,211,238,0.2)', iconCol: '#22d3ee' },
+              { icon: Shield,     title: 'Governance Tracker',     desc: 'Never miss a proposal. Active votes, quorum progress, and outcome history across Snapshot, Tally, and on-chain.', tier: 'MOONSTER', glow: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.2)', iconCol: '#fbbf24' },
+              { icon: Globe,      title: 'Sentiment Analysis',     desc: 'Aggregated sentiment from 180+ crypto news sources. Know the mood before you vote or trade.', tier: 'Moon Walker', glow: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.2)', iconCol: '#a78bfa' },
+              { icon: BarChart3,  title: 'Treasury Analytics',     desc: 'Monitor DAO treasury inflows, outflows, and asset composition. Spot diversification risks and liquidity runway.', tier: 'MOONSTER', glow: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.2)', iconCol: '#fbbf24' },
+              { icon: Users,      title: 'Developer Activity',     desc: 'GitHub commits, PR merges, and contributor growth — the on-chain fundamentals of protocol health.', tier: 'MOONSTER', glow: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.2)', iconCol: '#fbbf24' },
+              { icon: Zap,        title: 'Custom Watchlist',       desc: 'Build a personal watchlist. Astronauts get 10 tokens, Moon Walker+ unlocks 50.', glow: 'rgba(163,255,71,0.12)', border: 'rgba(163,255,71,0.18)', iconCol: '#a3ff47' },
             ].map((f) => (
-              <div key={f.title} className="card p-6">
+              <div key={f.title} className="card p-6 transition-all duration-200 hover:-translate-y-1"
+                style={{ borderColor: f.border, boxShadow: `0 0 30px ${f.glow}` }}>
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 bg-violet-600/20 border border-violet-600/30 rounded-lg flex items-center justify-center">
-                    <f.icon size={18} className="text-violet-400" />
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ background: `${f.glow}`, border: `1px solid ${f.border}` }}>
+                    <f.icon size={18} style={{ color: f.iconCol }} />
                   </div>
                   {f.tier && (
-                    <span className="text-xs bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-0.5 rounded-full">
+                    <span className={`trait-badge ${f.tier === 'MOONSTER' ? 'trait-badge-gold' : 'trait-badge-violet'}`}>
                       {f.tier}
                     </span>
                   )}
                 </div>
-                <h3 className="font-semibold mb-2">{f.title}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{f.desc}</p>
+                <h3 className="font-bold mb-2 text-white" style={{ fontFamily: 'Syne, sans-serif' }}>{f.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(161,161,170,0.8)' }}>{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Tiers */}
-      <section className="px-6 py-16 border-t border-zinc-800">
+      {/* ── Tiers ────────────────────────────────────────────────────────────── */}
+      <section className="px-6 py-16"
+        style={{ borderTop: '1px solid rgba(163,255,71,0.08)', background: 'rgba(6,3,16,0.7)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Your Moonster = your access</h2>
-            <p className="text-zinc-400">The rarer the trait, the more powerful your dashboard.</p>
+            <h2 className="font-monster text-3xl md:text-4xl mb-3 text-white">
+              Your Moonster = your access
+            </h2>
+            <p className="font-mono text-sm" style={{ color: 'rgba(163,139,250,0.6)' }}>
+              The rarer the trait, the more powerful your dashboard.
+            </p>
           </div>
-          <div className="grid md:grid-cols-4 gap-4">
+
+          <div className="grid md:grid-cols-4 gap-4 mb-10">
             {[
-              { label: 'Trial', sub: 'Any wallet', color: 'border-zinc-700', badge: 'bg-zinc-800 text-zinc-400', features: ['10 min free trial', 'Tier 1 access', 'No NFT needed'] },
-              { label: 'Tier 1', sub: 'Any Moonster', color: 'border-emerald-600/40', badge: 'bg-emerald-400/10 text-emerald-400', features: ['Live prices', '10 token watchlist', 'News feed'] },
-              { label: 'Tier 2', sub: 'Special traits', color: 'border-violet-600/40', badge: 'bg-violet-400/10 text-violet-400', features: ['50 token watchlist', 'Full sentiment', 'News filters'] },
-              { label: 'Tier 3', sub: 'Blue Chain', color: 'border-amber-600/40 bg-amber-600/5', badge: 'bg-amber-400/10 text-amber-400', features: ['Governance alerts', 'Treasury analytics', 'Dev metrics'] },
+              {
+                label: 'Trial', sub: 'Any wallet',
+                border: 'rgba(63,63,70,0.5)', bg: 'rgba(9,9,11,0.8)',
+                badge: { bg: 'rgba(63,63,70,0.3)', border: 'rgba(63,63,70,0.5)', color: '#71717a' },
+                features: ['10 min free trial', 'Astronaut access', 'No NFT needed'],
+                icon: '🌑',
+              },
+              {
+                label: 'Astronaut', sub: 'Any Moonster',
+                border: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.04)',
+                badge: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', color: '#34d399' },
+                features: ['Live prices', '10 token watchlist', 'News feed'],
+                icon: '🌙',
+              },
+              {
+                label: 'Moon Walker', sub: 'Special traits',
+                border: 'rgba(139,92,246,0.35)', bg: 'rgba(139,92,246,0.05)',
+                badge: { bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.35)', color: '#a78bfa' },
+                features: ['50 token watchlist', 'Full sentiment', 'News filters'],
+                icon: '☄️',
+              },
+              {
+                label: 'MOONSTER', sub: 'Blue Chain trait',
+                border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.05)',
+                badge: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.4)', color: '#fbbf24' },
+                features: ['Governance alerts', 'Treasury analytics', 'Dev metrics'],
+                icon: '⛓️',
+                character: CHAR_1,
+              },
             ].map((t) => (
-              <div key={t.label} className={`card p-5 text-left ${t.color}`}>
+              <div key={t.label} className="card p-5 text-left relative overflow-hidden"
+                style={{ borderColor: t.border, background: t.bg }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${t.badge}`}>{t.label}</span>
-                  {t.label === 'Tier 3' && (
-                    <img src={MOONSTER_IMG} alt="Moonster" className="w-6 h-6 rounded-full object-cover border border-amber-400/30" />
-                  )}
+                  <span className="text-lg">{t.icon}</span>
+                  <span className="font-monster text-sm" style={{ color: t.badge.color }}>{t.label}</span>
                 </div>
-                <p className="text-xs text-zinc-500 mb-3">{t.sub}</p>
-                <ul className="space-y-1.5">
+                <p className="text-xs font-mono mb-4" style={{ color: 'rgba(113,113,122,0.6)' }}>{t.sub}</p>
+                <ul className="space-y-2">
                   {t.features.map((f) => (
-                    <li key={f} className="flex items-center gap-1.5 text-xs text-zinc-300">
-                      <span className="text-emerald-500">✓</span> {f}
+                    <li key={f} className="flex items-center gap-2 text-xs" style={{ color: 'rgba(212,212,216,0.9)' }}>
+                      <span style={{ color: t.badge.color }}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
+                {/* MOONSTER tier: character art peek */}
+                {t.character && (
+                  <img src={t.character} alt="Moonster"
+                    className="absolute -bottom-4 -right-4 w-24 h-24 object-contain pointer-events-none"
+                    style={{ filter: 'drop-shadow(0 0 14px rgba(245,158,11,0.5))', opacity: 0.7 }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                )}
               </div>
             ))}
           </div>
-          <div className="mt-8 text-center">
-            <Link href="/login" className="btn-primary inline-flex items-center gap-2 text-base px-6 py-3">
+
+          <div className="text-center">
+            <Link href="/login" className="btn-primary inline-flex items-center gap-2 text-base px-8 py-3">
               <Wallet size={16} /> Connect Wallet to start
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800 px-6 py-8 mt-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-zinc-500">
-          <div className="flex items-center gap-2">
-            <img src={MOONSTER_IMG} alt="MoonMap" className="w-5 h-5 rounded object-cover" />
-            MoonMap · Not financial advice
+      {/* ── Footer ───────────────────────────────────────────────────────────── */}
+      <footer className="px-6 py-8 mt-4"
+        style={{ borderTop: '1px solid rgba(163,255,71,0.08)' }}>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <img src={MOONSTERS_LOGO} alt="MoonMap" className="w-7 h-7 rounded-full object-cover"
+              style={{ border: '1px solid rgba(163,255,71,0.3)' }}
+              onError={e => { (e.target as HTMLImageElement).src = MOONSTER_PORTRAIT }} />
+            <span className="font-monster text-sm text-white">MOONMAP</span>
+            <span className="text-xs font-mono" style={{ color: 'rgba(113,113,122,0.5)' }}>· Not financial advice</span>
           </div>
-          <div className="flex gap-6">
-            <a href="https://www.tensor.trade/trade/moonsters" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">Get a Moonster</a>
-            <Link href="/pricing" className="hover:text-zinc-300 transition-colors">Access tiers</Link>
+          <div className="flex gap-6 text-xs font-mono" style={{ color: 'rgba(113,113,122,0.6)' }}>
+            <a href="https://www.tensor.trade/trade/moonsters" target="_blank" rel="noopener noreferrer"
+              className="hover:text-white transition-colors" style={{ color: '#a3ff47' }}>
+              Get a Moonster ↗
+            </a>
+            <a href="https://x.com/MoonstersX" target="_blank" rel="noopener noreferrer"
+              className="hover:text-white transition-colors">
+              @MoonstersX
+            </a>
+            <Link href="/pricing" className="hover:text-white transition-colors">Access tiers</Link>
           </div>
         </div>
       </footer>

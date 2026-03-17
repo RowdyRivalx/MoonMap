@@ -7,7 +7,7 @@ import { MOONSTER_IMG, MOONSTER_IMG_JPEG } from '@/lib/moonsters'
 import SwapPanel from './SwapPanel'
 import type { NewsItem, PriceHistory } from '@/types'
 
-const MROCKS_MINT = 'HQtEXUxNh3Hb3BgQpqW4XCq3fcHr5JYiGABu61Fg82No'
+const MROCKS_MINT = 'moon3CP11XLvrAxUPBnPtueDEJvmjqAyZwPuq7wBC1y'
 
 interface MROCKSData {
   symbol: string; name: string; mint: string; price: number
@@ -16,31 +16,45 @@ interface MROCKSData {
   dexscreener_url: string
 }
 
+type Period = '1H' | '7D' | '1M'
+
 interface Props {
   mrocks: MROCKSData | null
-  history: PriceHistory[]
+  history1h: PriceHistory[]
+  history7d: PriceHistory[]
+  history1m: PriceHistory[]
   news: NewsItem[]
   tier: string
+}
+
+function formatMROCKSDate(ts: number, period: Period) {
+  const d = new Date(ts)
+  if (period === '1H') return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  if (period === '7D') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null
   return (
     <div className="px-3 py-2 rounded-xl text-xs shadow-xl" style={{ background: 'rgba(15,8,35,0.95)', border: '1px solid rgba(139,92,246,0.3)' }}>
-      <p style={{ color: 'rgba(113,113,122,0.8)' }}>{new Date(payload[0].payload.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+      <p style={{ color: 'rgba(113,113,122,0.8)' }}>{payload[0].payload.label}</p>
       <p className="font-bold text-white">{formatCurrency(payload[0].value, 6)}</p>
     </div>
   )
 }
 
-export default function MROCKSClient({ mrocks, history, news, tier }: Props) {
+export default function MROCKSClient({ mrocks, history1h, history7d, history1m, news, tier }: Props) {
   const [showSwap, setShowSwap] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [period, setPeriod] = useState<Period>('1H')
 
   const change = mrocks?.price_change_pct_24h || 0
   const isUp = change >= 0
   const color = isUp ? '#10b981' : '#ef4444'
-  const chartData = history.map(h => ({ time: h.timestamp, price: h.price }))
+
+  const currentHistory = period === '1H' ? history1h : period === '7D' ? history7d : history1m
+  const chartData = currentHistory.map(h => ({ time: h.timestamp, price: h.price, label: formatMROCKSDate(h.timestamp, period) }))
 
   const mrocksToken = { id: MROCKS_MINT, name: 'Moon Rocks', symbol: 'MROCKS', image: MOONSTER_IMG, current_price: mrocks?.price || 0 }
 
@@ -131,12 +145,23 @@ export default function MROCKSClient({ mrocks, history, news, tier }: Props) {
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 card p-5" style={{ borderColor: 'rgba(139,92,246,0.12)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>Price Chart (24h)</h2>
-            <div className="flex items-center gap-2">
+            <h2 className="font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>Price Chart</h2>
+            <div className="flex items-center gap-3">
               <span className={`text-sm font-bold flex items-center gap-1 ${priceChangeColor(change)}`}>
                 {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                 {formatPercent(change)}
               </span>
+              <div className="flex gap-0.5 rounded-lg p-0.5" style={{ background: 'rgba(39,39,42,0.6)' }}>
+                {(['1H', '7D', '1M'] as Period[]).map(p => (
+                  <button key={p} onClick={() => setPeriod(p)}
+                    className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                    style={period === p
+                      ? { background: 'rgba(124,58,237,0.8)', color: '#fff' }
+                      : { color: 'rgba(113,113,122,0.8)' }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           {chartData.length > 2 ? (
@@ -149,7 +174,7 @@ export default function MROCKSClient({ mrocks, history, news, tier }: Props) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(39,39,42,0.5)" />
-                <XAxis dataKey="time" hide />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#52525b' }} tickLine={false} interval="preserveStartEnd" />
                 <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#52525b' }} tickLine={false} axisLine={false} tickFormatter={v => `$${v.toFixed(6)}`} width={80} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="price" stroke={color} strokeWidth={2} fill="url(#mrocksGrad2)" dot={false} activeDot={{ r: 4, fill: color }} />

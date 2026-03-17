@@ -11,7 +11,7 @@ import TrialBanner from './TrialBanner'
 import { MOONSTER_IMG, MOONSTER_IMG_JPEG, PRIMARY_MOONSTER } from '@/lib/moonsters'
 import SwapPanel from './SwapPanel'
 
-const MROCKS_MINT = 'HQtEXUxNh3Hb3BgQpqW4XCq3fcHr5JYiGABu61Fg82No'
+const MROCKS_MINT = 'moon3CP11XLvrAxUPBnPtueDEJvmjqAyZwPuq7wBC1y'
 
 interface Props {
   mrocks: MROCKSData | null
@@ -68,13 +68,13 @@ export default function DashboardClient({
       {showBanner && (
         <div className="mb-6 bg-violet-600/20 border border-violet-600/40 rounded-xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-violet-300 text-sm font-medium">
-            <Crown size={16}/> Welcome to MoonMap! You now have full Tier 3 access.
+            <Crown size={16}/> Welcome to MoonMap! You now have full MOONSTER access.
           </div>
           <button onClick={() => setShowBanner(false)} className="text-zinc-400 hover:text-zinc-200"><X size={16}/></button>
         </div>
       )}
 
-      <TrialBanner trialExpiresAt={trialExpiresAt ?? null}/>
+      {(tier === 'free' || tier === 'tier1') && <TrialBanner trialExpiresAt={trialExpiresAt ?? null}/>}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -97,7 +97,7 @@ export default function DashboardClient({
         <span className="trait-badge trait-badge-violet">☄️ Coin Gecko Comet</span>
         <span className="trait-badge trait-badge-cyan">👁 Green Tri Eyes</span>
         <span className="trait-badge" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontFamily: 'Space Mono, monospace', fontSize: '10px', padding: '3px 8px', borderRadius: '20px' }}>🧔 Dark Orc Red Beard</span>
-        <span className="ml-auto trait-badge trait-badge-gold glow-tier3">⭐ TIER 3</span>
+        <span className="ml-auto trait-badge trait-badge-gold glow-tier3">⭐ MOONSTER</span>
       </div>
 
       {/* MROCKS Hero Card */}
@@ -243,7 +243,7 @@ export default function DashboardClient({
 
 function SentimentGauge({ sentiment }: { sentiment: SentimentData }) {
   const score = sentiment.score
-  const angle = -90 + (score / 100) * 180
+  const angle = 180 + (score / 100) * 180
   return (
     <div className="text-center">
       <svg viewBox="0 0 200 110" className="w-full max-w-[160px] mx-auto">

@@ -6,9 +6,9 @@ import type { TierKey } from '@/lib/tiers'
 
 const TIER_LABELS: Record<TierKey, string> = {
   free: 'Free (Trial)',
-  tier1: 'Tier 1 — Holder',
-  tier2: 'Tier 2 — Space Debris',
-  tier3: 'Tier 3 — Comet',
+  tier1: 'Astronaut',
+  tier2: 'Moon Walker',
+  tier3: 'MOONSTER',
 }
 
 const TIER_DESC: Record<TierKey, string> = {

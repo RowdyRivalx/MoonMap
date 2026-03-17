@@ -6,6 +6,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'coin-images.coingecko.com' },
       { protocol: 'https', hostname: '**.mypinata.cloud' },
       { protocol: 'https', hostname: '**.ipfs.io' },
+      { protocol: 'https', hostname: 'moonsters.io' },
+      { protocol: 'https', hostname: 'creator-hub-prod.s3.us-east-2.amazonaws.com' },
     ],
   },
   async headers() {

@@ -65,7 +65,7 @@ export default function TrialBanner({ trialExpiresAt }: Props) {
       <div className={`flex items-center gap-2 text-sm ${urgency ? 'text-red-400' : 'text-amber-400'}`}>
         <Clock size={15} />
         <span className="font-medium tabular-nums">{timeStr}</span>
-        <span className="opacity-70">remaining in your free trial — Tier 1 access</span>
+        <span className="opacity-70">remaining in your free trial — Astronaut access</span>
       </div>
       <a
         href="https://www.tensor.trade/trade/moonsters"

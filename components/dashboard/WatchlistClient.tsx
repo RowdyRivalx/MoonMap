@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Star, Trash2, TrendingUp, TrendingDown, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatPercent, priceChangeColor } from '@/lib/utils'
@@ -27,6 +28,7 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
   const [watched, setWatched] = useState<DAOToken[]>(watchedTokens)
   const [suggested, setSuggested] = useState<DAOToken[]>(suggestedTokens)
   const [removing, setRemoving] = useState<string | null>(null)
+  const router = useRouter()
 
   async function removeFromWatchlist(coinId: string) {
     setRemoving(coinId)
@@ -105,7 +107,7 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
                 const change24 = token.price_change_percentage_24h || 0
                 const change7d = token.price_change_percentage_7d_in_currency || 0
                 return (
-                  <tr key={token.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
+                  <tr key={token.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors cursor-pointer" onClick={() => router.push(token.id === 'mrocks' ? '/dashboard/mrocks' : `/dashboard/token/${token.id}`)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <img src={token.image} alt={token.name} className="w-7 h-7 rounded-full" />
@@ -129,13 +131,17 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
                       {formatCurrency(token.market_cap)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => removeFromWatchlist(token.id)}
-                        disabled={removing === token.id}
-                        className="p-1.5 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {token.id === 'mrocks' ? (
+                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ color: 'rgba(163,255,71,0.6)', background: 'rgba(163,255,71,0.06)', border: '1px solid rgba(163,255,71,0.15)' }}>pinned</span>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeFromWatchlist(token.id) }}
+                          disabled={removing === token.id}
+                          className="p-1.5 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )

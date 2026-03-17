@@ -39,7 +39,7 @@ export const TIER_FEATURES = {
     governanceAlerts: false,
     treasuryAnalytics: false,
     developerMetrics: false,
-    label: 'Holder',
+    label: 'Astronaut',
     description: 'Base collection NFT',
   },
   // NFT with Space Debris trait
@@ -51,7 +51,7 @@ export const TIER_FEATURES = {
     governanceAlerts: false,
     treasuryAnalytics: false,
     developerMetrics: false,
-    label: 'Coin Gecko Comet',
+    label: 'Moon Walker',
     description: 'Space Debris trait',
   },
   // NFT with Coin Gecko Comet trait
@@ -63,7 +63,7 @@ export const TIER_FEATURES = {
     governanceAlerts: true,
     treasuryAnalytics: true,
     developerMetrics: true,
-    label: 'Comet',
+    label: 'MOONSTER',
     description: 'Coin Gecko Comet trait',
   },
 } as const
