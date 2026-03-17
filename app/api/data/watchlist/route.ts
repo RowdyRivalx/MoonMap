@@ -16,7 +16,7 @@ async function getDb() {
 
 export async function GET() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(session?.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const db = await getDb()
   if (!db) return NextResponse.json({ items: [] })
   const items = await db.watchlistItem.findMany({ where: { userId: session.user.id }, orderBy: { addedAt: 'desc' } })
@@ -25,7 +25,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(session?.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { coinId, coinName, coinSymbol } = await req.json()
   const db = await getDb()
   if (!db) return NextResponse.json({ error: 'Database unavailable' }, { status: 503 })
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(session?.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { coinId } = await req.json()
   const db = await getDb()
   if (!db) return NextResponse.json({ success: true })
