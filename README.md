@@ -1,155 +1,210 @@
-# MoonMap — DAO Intelligence Platform
+# MoonMap
 
-A full-stack subscription SaaS for tracking crypto DAO tokens, governance, and news sentiment. Built with Next.js 14, Prisma, NextAuth v5, and Stripe.
+**Solana DAO intelligence for Moonsters NFT holders.**
+
+Live at [moonmap.net](https://moonmap.net) · Built by [@ROWDY](https://x.com/moonsters_io)
 
 ---
 
-## Tech Stack
+## What it is
+
+MoonMap is a real-time dashboard for the [Moonsters](https://moonsters.io) community on Solana. It tracks DAO governance tokens, live market data, portfolio holdings, news sentiment, and community discussion — all gated by NFT ownership. No subscriptions. No logins beyond your wallet. Hold a Moonster, get access.
+
+---
+
+## Access tiers
+
+| Tier | Requirement | Watchlist | News | Features |
+|------|-------------|-----------|------|----------|
+| **Trial** | Any wallet | 5 tokens | 5 articles | 10-minute free trial |
+| **Astronaut** | Any Moonster NFT | 20 tokens | 20 articles | Full markets, portfolio |
+| **Moon Walker** | Rare trait | 50 tokens | 100 articles | Full sentiment, filters |
+| **MOONSTER** | Blue Chain trait | Unlimited | Unlimited | Governance + treasury analytics |
+
+---
+
+## Tech stack
 
 | Layer | Tech |
-|---|---|
-| Framework | Next.js 14 (App Router) |
-| Auth | NextAuth v5 (credentials + Google OAuth) |
-| Database | PostgreSQL via Prisma |
-| Payments | Stripe (subscriptions + webhooks) |
-| Data | CoinGecko API + CryptoPanic API |
-| Charts | Recharts |
-| Styling | Tailwind CSS |
-| Deployment | Vercel (recommended) |
+|-------|------|
+| Framework | Next.js 14 (App Router, RSC) |
+| Auth | NextAuth v4 — Solana wallet signature (Ed25519 / tweetnacl) |
+| Database | PostgreSQL via Prisma ORM (Supabase) |
+| Blockchain | Helius RPC — NFT detection + wallet token balances |
+| Market data | CoinGecko API — prices, charts, market caps |
+| News | CryptoPanic API + 18 RSS feeds |
+| Charts | Recharts (AreaChart) |
+| Styling | Tailwind CSS + custom glass morphism CSS |
+| Deployment | Vercel (auto-deploy from `main`) |
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
-dao-intelligence/
+MoonMap/
 ├── app/
-│   ├── page.tsx                    # Landing page
-│   ├── login/page.tsx              # Login / signup
-│   ├── pricing/page.tsx            # Pricing page
-│   ├── dashboard/
-│   │   ├── layout.tsx              # Auth-protected layout w/ sidebar
-│   │   ├── page.tsx                # Overview dashboard
-│   │   ├── markets/page.tsx        # Full token market table
-│   │   ├── news/page.tsx           # News & sentiment
-│   │   └── settings/page.tsx       # Account & billing
-│   └── api/
-│       ├── auth/
-│       │   ├── [...nextauth]/      # NextAuth handler
-│       │   └── register/           # Email registration
-│       ├── stripe/
-│       │   ├── checkout/           # Create Stripe checkout session
-│       │   ├── portal/             # Open billing portal
-│       │   └── webhook/            # Handle Stripe webhooks
-│       └── data/
-│           ├── daos/               # Fetch DAO token data
-│           └── watchlist/          # Add/remove watchlist items
-├── components/
+│   ├── page.tsx                      # Landing page
+│   ├── login/page.tsx                # Wallet connect + sign
+│   ├── pricing/page.tsx              # Tier comparison + FAQ
 │   └── dashboard/
-│       ├── Sidebar.tsx
-│       ├── DashboardClient.tsx
-│       ├── MarketsClient.tsx
-│       ├── NewsClient.tsx
-│       └── SettingsClient.tsx
+│       ├── layout.tsx                # Auth-protected shell + sidebar
+│       ├── page.tsx                  # Overview: $MROCKS chart, movers, ticker
+│       ├── markets/page.tsx          # Full token table (46 Solana DAOs)
+│       ├── portfolio/page.tsx        # Wallet holdings (SPL tokens + NFTs)
+│       ├── watchlist/page.tsx        # Saved tokens with price alerts
+│       ├── news/page.tsx             # Aggregated news + sentiment
+│       ├── gallery/page.tsx          # Moonster NFT viewer
+│       ├── mrocks/page.tsx           # $MROCKS deep dive
+│       ├── token/[id]/page.tsx       # Token detail: charts, news, community
+│       └── settings/page.tsx         # Account info
+├── app/api/
+│   ├── auth/[...nextauth]/           # NextAuth handler
+│   ├── data/daos/                    # DAO token list endpoint
+│   ├── data/watchlist/               # Watchlist CRUD
+│   ├── data/trending/                # Top movers endpoint
+│   ├── data/search/                  # Token search
+│   └── gallery/                      # NFT gallery data
+├── components/dashboard/
+│   ├── Sidebar.tsx                   # Nav sidebar (mobile drawer + desktop)
+│   ├── DashboardClient.tsx           # Overview page client
+│   ├── MarketsClient.tsx             # Sortable markets table
+│   ├── PortfolioClient.tsx           # Wallet holdings display
+│   ├── WatchlistClient.tsx           # Watchlist with localStorage fallback
+│   ├── NewsClient.tsx                # News feed + sentiment bar
+│   ├── TokenDetailClient.tsx         # Token detail charts + community tab
+│   ├── SwapPanel.tsx                 # Jupiter swap integration
+│   └── TrialBanner.tsx               # Countdown trial banner
 ├── lib/
-│   ├── auth.ts                     # NextAuth config
-│   ├── db.ts                       # Prisma client singleton
-│   ├── api.ts                      # CoinGecko + CryptoPanic
-│   ├── stripe.ts                   # Stripe helpers + webhook handler
-│   └── utils.ts                    # Formatting utilities
-├── types/index.ts                  # Shared TypeScript types
-└── prisma/schema.prisma            # Database schema
+│   ├── auth.ts                       # NextAuth config + wallet sig verification
+│   ├── api.ts                        # All external API calls (CoinGecko, Helius, etc.)
+│   ├── nft.ts                        # Moonster NFT ownership detection
+│   ├── tokens.ts                     # Solana mint address mappings
+│   ├── tiers.ts                      # Feature flags per tier
+│   ├── moonsters.ts                  # Moonster trait → tier logic
+│   ├── db.ts                         # Prisma client singleton
+│   └── utils.ts                      # Formatting helpers
+├── types/index.ts                    # Shared TypeScript types + DAO_COINS list
+├── prisma/schema.prisma              # User + WatchlistItem schema
+├── middleware.ts                     # Edge auth guard (requires NEXTAUTH_SECRET)
+└── next.config.mjs                   # Security headers + image domains
 ```
 
 ---
 
-## Setup
+## Local setup
 
-### 1. Install dependencies
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/RowdyRivalx/MoonMap.git
+cd MoonMap
 npm install
 ```
 
-### 2. Set up environment variables
+### 2. Environment variables
 
-```bash
-cp .env.example .env.local
+Create `.env.local`:
+
+```env
+# Database (Supabase or any PostgreSQL)
+DATABASE_URL="postgresql://user:password@host:5432/dbname"
+
+# Auth
+AUTH_SECRET="run: openssl rand -base64 32"
+AUTH_URL="http://localhost:3000"
+
+# Helius — NFT detection + wallet token balances
+# Free tier: 100k req/month — https://helius.dev
+HELIUS_API_KEY="your-key"
+
+# CoinGecko — market data
+# Free tier works, demo key increases rate limits — https://coingecko.com/api
+COINGECKO_API_KEY="your-key"
+
+# CryptoPanic — news + sentiment
+# Free at https://cryptopanic.com/developers/api/
+CRYPTOPANIC_API_KEY="your-key"
+
+# App URL
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-Fill in:
-- **DATABASE_URL** — your PostgreSQL connection string
-- **AUTH_SECRET** — run `openssl rand -base64 32`
-- **STRIPE_SECRET_KEY** + **NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY** — from Stripe dashboard
-- **STRIPE_WEBHOOK_SECRET** — from `stripe listen` CLI output
-- **COINGECKO_API_KEY** — free at https://www.coingecko.com/en/api
-- **CRYPTOPANIC_API_KEY** — free at https://cryptopanic.com/developers/api/
-
-### 3. Set up the database
+### 3. Database
 
 ```bash
 npx prisma migrate dev --name init
 npx prisma generate
 ```
 
-### 4. Create Stripe products
-
-In your Stripe dashboard, create:
-- **Product**: "DAOScope Pro"
-  - **Price 1**: $15/month (recurring) → copy price ID to `STRIPE_PRO_MONTHLY_PRICE_ID`
-  - **Price 2**: $120/year (recurring) → copy price ID to `STRIPE_PRO_YEARLY_PRICE_ID`
-
-### 5. Run locally
+### 4. Run
 
 ```bash
 npm run dev
 ```
 
-### 6. Set up Stripe webhooks (local)
-
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
+Open [http://localhost:3000](http://localhost:3000). Connect any Solana wallet to get a 10-minute trial.
 
 ---
 
-## Deployment (Vercel)
+## Vercel deployment
 
 1. Push to GitHub
 2. Import repo in Vercel
-3. Add all `.env` variables in Vercel dashboard
-4. Set `NEXT_PUBLIC_APP_URL` to your production URL
-5. In Stripe dashboard → Webhooks → add endpoint: `https://yourdomain.com/api/stripe/webhook`
-   - Events to listen: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+3. Add all environment variables in **Settings → Environment Variables**:
+   - `DATABASE_URL`
+   - `AUTH_SECRET`
+   - `NEXTAUTH_SECRET` ← same value as `AUTH_SECRET`, required for edge middleware
+   - `NEXTAUTH_URL` → `https://yourdomain.com`
+   - `HELIUS_API_KEY`
+   - `COINGECKO_API_KEY`
+   - `CRYPTOPANIC_API_KEY`
+4. Deploy — Vercel auto-deploys on every push to `main`
+
+> **Note:** Both `AUTH_SECRET` and `NEXTAUTH_SECRET` must be set for the edge auth middleware (`middleware.ts`) to work correctly. If you only set one, the middleware will throw a `NO_SECRET` error and redirect all protected routes to `/login?error=Configuration`.
 
 ---
 
-## Subscription Tiers
+## How wallet auth works
 
-| Feature | Free | Pro ($15/mo) |
-|---|---|---|
-| Watchlist tokens | 5 | 50 |
-| News articles | 5 (latest) | Unlimited |
-| News filters | Hot only | Hot, Rising, Bullish, Bearish |
-| Sentiment analysis | Preview | Full |
-| DAO token table | 5 tokens | All 20+ |
-| 7-day free trial | — | ✓ |
+1. User connects a Solana wallet (Phantom, Backpack, Solflare, etc.)
+2. App requests a signature on a timestamped message
+3. Server verifies the Ed25519 signature using `tweetnacl` + `@solana/web3.js`
+4. Helius RPC checks the wallet for Moonster NFTs
+5. NFT traits determine the access tier, stored in the JWT session
+6. Tier is re-checked on each login — no stale access if NFT is sold
 
----
-
-## Adding More DAOs
-
-Edit `types/index.ts` → `DAO_COINS` array. Use CoinGecko coin IDs (e.g. `"uniswap"`, `"aave"`).
+MoonMap never takes custody of any assets. Read-only signature only.
 
 ---
 
-## Extending
+## Adding tokens
 
-**Add governance data**: Integrate [Snapshot API](https://docs.snapshot.org/graphql-api) or [Tally API](https://docs.tally.xyz/) in `lib/api.ts`.
+Edit `types/index.ts` → `DAO_COINS` array. Use CoinGecko coin IDs (e.g. `"jupiter-exchange-solana"`).
 
-**Add treasury analytics**: Use [DeepDAO API](https://deepdao.io/) or on-chain RPC calls via `viem`.
+If the token is a Solana SPL token, add its mint address to `lib/tokens.ts` → `COIN_TO_MINT` so wallet balance detection works.
 
-**Add email alerts**: Wire up [Resend](https://resend.com/) or [Loops](https://loops.so/) in a cron job (`/api/cron/alerts`).
+---
 
-**Add CSV export**: Add a `/api/data/export` route that streams CSV from watchlist data (Pro only).
-# MoonMap
+## Data sources
+
+| Source | Used for | Refresh |
+|--------|----------|---------|
+| CoinGecko | Token prices, market caps, charts, metadata | 60s |
+| Helius RPC | NFT ownership, wallet SPL token balances | On login / on-demand |
+| CryptoPanic | Crypto news, sentiment votes | 300s |
+| 18 RSS feeds | Broader news corpus | 300s |
+| DexScreener | $MROCKS price + 24h change | 300s |
+| Reddit JSON API | Community discussion posts | 300s |
+
+---
+
+## Security
+
+- Wallet signatures verified server-side (Ed25519, 5-minute replay window)
+- All API routes auth-gated via `getServerSession`
+- Edge middleware (`middleware.ts`) blocks unauthenticated access to `/dashboard` before page load
+- Input validation on all user-supplied fields (wallet addresses, watchlist entries)
+- Rate limiting: watchlist mutations 30 req/min, search 60 req/min
+- No API keys exposed client-side (`NEXT_PUBLIC_HELIUS_API_KEY` removed)
+- Security headers: `X-Frame-Options`, `HSTS`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
