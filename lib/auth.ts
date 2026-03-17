@@ -59,11 +59,10 @@ export const authOptions: NextAuthOptions = {
         signature: { label: 'Signature', type: 'text' },
       },
       async authorize(credentials) {
-        console.log('=== AUTHORIZE CALLED ===')
+        // CIPHER: removed verbose wallet/signature logging to prevent PII leakage in production logs
         const { wallet, message, signature } = credentials as {
           wallet: string; message: string; signature: string
         }
-        console.log('Wallet:', wallet)
         if (!wallet || !message || !signature) return null
 
         // 1. Verify signature
@@ -72,24 +71,20 @@ export const authOptions: NextAuthOptions = {
           const sigBytes = bs58.decode(signature)
           const pubBytes = new PublicKey(wallet).toBytes()
           const valid = nacl.sign.detached.verify(msgBytes, sigBytes, pubBytes)
-          console.log('Signature valid:', valid)
           if (!valid) return null
         } catch (e) {
-          console.error('Sig error:', e)
+          console.error('Sig verification error')
           return null
         }
 
         // 2. Reject stale messages
         const tsMatch = message.match(/Timestamp: (\d+)/)
         if (tsMatch && Date.now() - parseInt(tsMatch[1]) > 300_000) {
-          console.log('Message too old')
           return null
         }
 
         // 3. Check NFT ownership
-        console.log('Checking NFT ownership...')
         const nftResult = await checkNFTOwnership(wallet)
-        console.log('NFT result:', nftResult.hasNFT, nftResult.tier)
 
         // 4. Determine tier + trial
         let tier: TierKey = nftResult.tier
@@ -110,8 +105,6 @@ export const authOptions: NextAuthOptions = {
           nftResult.nftFound?.id || null,
           nftResult.hasNFT
         )
-
-        console.log('Auth success. ID:', userId, 'Tier:', tier)
 
         return {
           id: userId,

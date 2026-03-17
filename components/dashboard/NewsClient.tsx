@@ -55,14 +55,64 @@ export default function NewsClient({
   const sBg = sentiment.score >= 60 ? 'rgba(16,185,129,0.1)' : sentiment.score <= 40 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)'
   const sBorder = sentiment.score >= 60 ? 'rgba(16,185,129,0.25)' : sentiment.score <= 40 ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'
 
+  // Article-level sentiment summary bar — aggregate across ALL articles
+  const allArticles = [...hotNews, ...risingNews, ...bullishNews, ...bearishNews]
+  const uniqueArticles = allArticles.filter((a, i, arr) => arr.findIndex(b => b.id === a.id) === i)
+  const articleSentiments = uniqueArticles.map(item => {
+    const pos = (item.votes?.positive || 0) + (item.votes?.liked || 0)
+    const neg = (item.votes?.negative || 0) + (item.votes?.disliked || 0)
+    const tot = pos + neg
+    if (tot <= 5) return 'neutral' as const
+    const bPct = (pos / tot) * 100
+    return bPct >= 60 ? 'bullish' as const : bPct <= 40 ? 'bearish' as const : 'neutral' as const
+  })
+  const artTotal = articleSentiments.length || 1
+  const artBullish = articleSentiments.filter(s => s === 'bullish').length
+  const artBearish = articleSentiments.filter(s => s === 'bearish').length
+  const artNeutral = articleSentiments.filter(s => s === 'neutral').length
+  const artBullPct = Math.round((artBullish / artTotal) * 100)
+  const artBearPct = Math.round((artBearish / artTotal) * 100)
+  const artNeutPct = 100 - artBullPct - artBearPct
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-semibold">News & Sentiment</h1>
           <p className="text-sm text-zinc-400 mt-0.5">Aggregated from 180+ crypto sources</p>
         </div>
       </div>
+
+      {/* Article sentiment summary bar */}
+      {uniqueArticles.length > 0 && (
+        <div className="mb-6 rounded-xl px-4 py-3"
+          style={{ background: 'rgba(12,6,28,0.7)', border: '1px solid rgba(139,92,246,0.12)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'rgba(113,113,122,0.6)' }}>
+              Article Sentiment · {uniqueArticles.length} articles
+            </p>
+            <div className="flex items-center gap-3 text-[10px] font-mono">
+              <span className="text-emerald-400">{artBullPct}% bullish</span>
+              <span className="text-zinc-500">{artNeutPct}% neutral</span>
+              <span className="text-red-400">{artBearPct}% bearish</span>
+            </div>
+          </div>
+          <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
+            {artBullPct > 0 && (
+              <div className="rounded-l-full transition-all duration-700"
+                style={{ width: `${artBullPct}%`, background: 'rgba(16,185,129,0.75)' }} />
+            )}
+            {artNeutPct > 0 && (
+              <div className="transition-all duration-700"
+                style={{ width: `${artNeutPct}%`, background: 'rgba(113,113,122,0.35)' }} />
+            )}
+            {artBearPct > 0 && (
+              <div className="rounded-r-full transition-all duration-700"
+                style={{ width: `${artBearPct}%`, background: 'rgba(239,68,68,0.75)' }} />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Sentiment summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -192,7 +242,7 @@ function NewsItemCard({ item, isFirst }: { item: NewsItem; isFirst: boolean }) {
     : null
 
   return (
-    <div className="px-4 py-4 transition-colors hover:bg-white/[0.025]"
+    <div className="px-4 py-4 transition-all duration-200 hover:bg-white/[0.025] hover:-translate-y-px"
       style={{ borderBottom: '1px solid rgba(39,39,42,0.5)' }}>
       <div className="flex items-start gap-3">
         {/* Thumbnail */}

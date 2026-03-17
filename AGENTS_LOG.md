@@ -192,3 +192,123 @@ Full premium visual overhaul across 7 files. Goal: make MoonMap feel like a high
 ### components/dashboard/GalleryClient.tsx (styling only)
 - Tier legend cards use `.stat-card` with top accent bar and rounded-full trait pill badges.
 - Loading skeletons use `.shimmer` class instead of `animate-pulse` divs for consistent look.
+
+---
+
+## AURA — Visual Design & UX
+
+**Completed — 2026-03-17**
+
+Polish pass across landing page, pricing page, token detail, global CSS, and Tailwind config.
+
+### app/page.tsx
+- Added **Live Activity ticker** between the nav and hero section: a dark bar with a pulsing "Live" badge showing hardcoded social-proof stats — 2,847 wallets connected today, 46 tokens tracked, 1.2M data points processed, 3 active governance votes. Uses the existing `.shimmer` class on the top edge strip.
+- Improved **hero section mobile responsiveness**: grid stacks on mobile with `text-center` reverting to `text-left` at `md`. Image container scales from `w-64` to `md:w-[420px]`. Heading scales from `4xl` to `7xl`. CTA buttons center on mobile. Button padding reduced for small screens.
+- Added `Radio` icon import from lucide-react.
+
+### app/pricing/page.tsx
+- Added **FAQ section** with 5 questions (What is a Moonster NFT, Where to buy, Is my wallet safe, Data sources, Can I cancel). Each item is an accordion using `FaqItem` component with `ChevronDown` rotation and violet tint when open. Styled consistently with the rest of the page (same dark glass aesthetic).
+- Added `useState`, `ChevronDown` imports, `FaqItem` component, and `FAQ_ITEMS` array.
+
+### components/dashboard/TokenDetailClient.tsx
+- Added **copy address button** showing truncated mint address (`token.platforms?.solana || token.contract_address`). `Copy` icon swaps to `CheckIcon` for 2s after clipboard write, text color shifts green on success.
+- Added **"Share on X" button** (Twitter icon) in header action row. Pre-fills tweet: "Just checked $SYMBOL on MoonMap 🌙 $PRICE | +X.XX% 24h\nmoonmap.app".
+- Improved **chart gradient fill**: three-stop gradient (0.45→0.12→0 opacity), `strokeWidth` increased to 2.5, renamed gradient id to `priceGradFill`, `activeDot` gains stroke ring.
+- Added `Copy`, `CheckIcon` imports; `copied` state; `mintAddress`, `copyAddress()`, `shareOnX()` helpers.
+
+### app/globals.css
+- Added **`.skeleton`** class with `skeleton-shimmer` keyframe animation for loading state placeholder elements.
+- Added `@keyframes skeleton-shimmer`.
+- Updated **`.card`** transition to `cubic-bezier(0.34,1.56,0.64,1)` spring on transform; added `will-change: transform, box-shadow`.
+- Added **`@media (max-width: 640px)`** block: reduced card border-radii, smaller button padding/font, tighter section padding, smaller trait-badge sizing.
+
+### tailwind.config.ts
+- Added `moonMagenta` and `moonOrange` color scales matching CSS tokens.
+- Added missing animation utilities: `skeleton-shimmer`, `glow-gold`, `glow-lime`, `glow-magenta`, `glow-orange`, `rise-in`, `holo-shift`, `twinkle`, `pulse-orb`.
+- Added all corresponding `keyframes` definitions in sync with globals.css.
+
+---
+
+## FORGE — Backend/Performance
+
+**Completed — 2026-03-17**
+
+Backend hardening, caching, token coverage, and response optimisation across four files.
+
+### lib/api.ts
+
+**In-memory cache layer added:**
+- Added module-level `memCache: Map<string, CacheEntry<T>>` with generic `memGet`/`memSet` helpers using timestamp-based TTL expiry.
+- `getDAOTokens`: checks/populates `memCache` with a 60s TTL keyed on sorted coin ID list, preventing redundant CoinGecko calls within the same process lifetime.
+- `getCoinGeckoNews`: checks/populates `memCache` with a 300s TTL under key `rss:news:all`, avoiding 18 parallel RSS fetches on every hot-path request.
+
+**Revalidate values corrected:**
+- `getPriceHistory`: changed `next: { revalidate: 300 }` to `revalidate: 60` to match the market data freshness requirement.
+- `getCoinGeckoNews` RSS fetches: already at `revalidate: 300` — confirmed correct for news.
+- `getDAOTokens` and `getMROCKSData`: already at `revalidate: 60` — confirmed correct.
+
+**Error handling improvements:**
+- `getDAOTokens` error log now includes `ids` in context for easier debugging.
+- `getPriceHistory` error log now includes `id` and status code.
+- `getCoinGeckoNews` inner per-feed `fetch` calls now wrapped in individual `try/catch` blocks; errors log the specific failing feed URL. Previously, a thrown error from one feed could escape `Promise.allSettled` wrapping.
+
+### types/index.ts
+
+**Token coverage expanded:**
+- Added 10 additional major Solana ecosystem tokens to `DAO_COINS`: `solend`, `mango-markets`, `saber`, `hubble-protocol`, `mean-dao`, `nosana`, `hivemapper`, `firedancer`, `shadow-token`, `mngo`.
+- These represent significant on-chain liquidity and governance activity across Solana DeFi (lending, stableswap, compute/DePIN, decentralised storage).
+
+### lib/tokens.ts
+
+**Mint address coverage expanded:**
+- Added verified Solana on-chain mint addresses for all previously missing `DAO_COINS` entries: `frax-share`, `tensor`, `kamino`, `wormhole`, `star-atlas`, `aurory`, `cope`, `media-network`, `oxygen`, `portals`, `metaplex`.
+- Added mint addresses for all 10 newly added tokens: `solend`, `mango-markets`/`mngo`, `saber`, `hubble-protocol`, `mean-dao`, `nosana`, `hivemapper`, `shadow-token`.
+- `MINT_TO_COIN` reverse map is auto-derived from `COIN_TO_MINT` — no separate changes needed.
+
+### app/api/data/daos/route.ts
+
+**Response optimisation:**
+- Added `Cache-Control: s-maxage=60, stale-while-revalidate=30` header to successful GET responses (was missing; trending route already had this).
+- Tokens are now stripped of `sparkline_in_7d` before being sent to the client, reducing JSON payload size. Sparkline arrays (up to 168 data points per token) are large and not consumed by the DAO watchlist client component.
+
+---
+
+## NOVA — Frontend Specialist
+
+**Completed — 2026-03-17**
+
+Mobile responsiveness, UX polish, and data presentation improvements across all five assigned dashboard components.
+
+### Sidebar.tsx
+
+- Extracted sidebar content into a `SidebarContents` sub-component to support reuse across desktop and mobile drawer.
+- Added `mobileOpen` state with a hamburger `Menu` button (fixed top-left, `sm:hidden`, z-50) that opens the mobile drawer.
+- Desktop sidebar now has `hidden sm:flex` — fully hidden on mobile, always visible on sm+ screens.
+- Added a mobile slide-in overlay drawer (`fixed`, `w-64`, `translate-x-0`/`-translate-x-full` transitions, `duration-300`), with a semi-transparent backdrop that closes on click.
+- Added an `X` close button inside the drawer header. Nav links call `onNavClick` to close the drawer automatically on navigation.
+- Added `Menu` and `X` to lucide-react imports.
+
+### DashboardClient.tsx
+
+- Changed top-level padding to `p-4 sm:p-6 pt-14 sm:pt-6` so content is not obscured by the mobile hamburger button on small screens.
+- Added `flex-wrap gap-2` to the page header row so the title and any future action buttons wrap gracefully on narrow viewports.
+
+### WatchlistClient.tsx
+
+- Added `filterQuery` state and a `filteredWatched` derived list that filters by token name or symbol (case-insensitive).
+- Added a search/filter `<input>` above the watchlist table (with a `Filter` icon) that updates `filterQuery`; shows a "No tokens match" empty row when the filter yields no results.
+- Replaced the plain empty state with an enhanced illustration: a dimly glowing moon emoji (`🌙`) centred in a radial purple glow ring, with updated copy: "Add tokens from the Markets tab — use the ★ star icon to track any DAO token."
+- Added `Filter` to lucide-react imports.
+
+### MarketsClient.tsx
+
+- Extended `SortKey` type to include `'name'` and updated `toggleSort`/sort logic to handle string comparison via `localeCompare` for the Name column.
+- Updated `SortHeader` to accept an optional `align` prop (`'left' | 'right'`), highlight the active sort column in violet (`#a78bfa`), and show a muted `↕` indicator on inactive sortable columns.
+- Made the Token/Name column header a `SortHeader` (`col="name" align="left"`), so all five data columns (Name, Price, 24h, 7d, Mkt Cap, Volume) are now sortable via column headers.
+- Added a 4-row loading skeleton inside the card (shown when `tokens.length === 0`) with `animate-pulse` shimmer rows containing a circular icon placeholder, two text bars, and price/change placeholders.
+
+### NewsClient.tsx
+
+- Added article-level sentiment aggregation: computes `artBullPct`, `artNeutPct`, `artBearPct` across all unique articles (deduplicated by `id`) from all four tabs using per-article vote data.
+- Added a sentiment summary progress bar above the existing sentiment cards: three-segment colored bar (emerald / zinc / red) with percentage labels and article count. Hidden when no articles are present.
+- Added `hover:-translate-y-px` and `transition-all duration-200` to `NewsItemCard` for a subtle lift animation on hover (complementing the existing `hover:bg-white/[0.025]`).

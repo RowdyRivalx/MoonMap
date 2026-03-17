@@ -1,8 +1,9 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, Star, Newspaper, Settings, LogOut, TrendingUp, Rocket, Image, BarChart2 } from 'lucide-react'
+import { LayoutDashboard, Star, Newspaper, Settings, LogOut, TrendingUp, Rocket, Image, BarChart2, Menu, X } from 'lucide-react'
 import type { TierFeatures, TierKey } from '@/lib/tiers'
 
 const MOONSTER_IMG  = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
@@ -35,18 +36,16 @@ const TIER_META: Record<TierKey, { label: string; color: string; bg: string; bor
   tier3: { label: 'MOONSTER',    color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   glow: '0 0 18px rgba(245,158,11,0.28)',      icon: '⛓️' },
 }
 
-export default function DashboardSidebar({ user, features, tier, portfolioValue }: Props) {
+function SidebarContents({ user, features, tier, portfolioValue, onNavClick }: Props & { onNavClick?: () => void }) {
   const pathname = usePathname()
   const shortWallet = user.wallet ? `${user.wallet.slice(0, 4)}…${user.wallet.slice(-4)}` : '—'
   const tm = TIER_META[tier]
 
   return (
-    <aside className="w-56 flex-shrink-0 flex flex-col h-full relative z-10"
-      style={{ background: 'rgba(5,2,16,0.88)', borderRight: '1px solid rgba(139,92,246,0.1)', backdropFilter: 'blur(24px)' }}>
-
+    <>
       {/* Logo */}
       <div className="px-4 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(139,92,246,0.08)' }}>
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
+        <Link href="/dashboard" className="flex items-center gap-2.5 group" onClick={onNavClick}>
           <div className="relative flex-shrink-0">
             <div className="absolute inset-0 rounded-full blur-md opacity-70 group-hover:opacity-100 transition-opacity"
               style={{ background: 'rgba(163,255,71,0.3)' }} />
@@ -70,6 +69,7 @@ export default function DashboardSidebar({ user, features, tier, portfolioValue 
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link key={href} href={href}
+              onClick={onNavClick}
               className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 border relative ${
                 active
                   ? 'nav-active font-display'
@@ -153,6 +153,66 @@ export default function DashboardSidebar({ user, features, tier, portfolioValue 
           <LogOut size={10} /> Disconnect
         </button>
       </div>
-    </aside>
+    </>
+  )
+}
+
+export default function DashboardSidebar({ user, features, tier, portfolioValue }: Props) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <>
+      {/* Hamburger button — mobile only */}
+      <button
+        className="sm:hidden fixed top-3 left-3 z-50 p-2 rounded-lg"
+        style={{ background: 'rgba(5,2,16,0.9)', border: '1px solid rgba(139,92,246,0.25)', color: '#a78bfa' }}
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open navigation"
+      >
+        <Menu size={18} />
+      </button>
+
+      {/* Desktop sidebar — hidden on mobile */}
+      <aside className="hidden sm:flex w-56 flex-shrink-0 flex-col h-full relative z-10"
+        style={{ background: 'rgba(5,2,16,0.88)', borderRight: '1px solid rgba(139,92,246,0.1)', backdropFilter: 'blur(24px)' }}>
+        <SidebarContents user={user} features={features} tier={tier} portfolioValue={portfolioValue} />
+      </aside>
+
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="sm:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile slide-in drawer */}
+      <aside
+        className={`sm:hidden fixed top-0 left-0 h-full z-50 flex flex-col w-64 transition-transform duration-300 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ background: 'rgba(5,2,16,0.97)', borderRight: '1px solid rgba(139,92,246,0.2)', backdropFilter: 'blur(24px)' }}
+      >
+        {/* Close button inside drawer */}
+        <button
+          className="absolute top-3 right-3 p-1.5 rounded-lg transition-colors"
+          style={{ color: 'rgba(113,113,122,0.6)' }}
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation"
+          onMouseEnter={e => (e.currentTarget.style.color = '#e4e4e7')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(113,113,122,0.6)')}
+        >
+          <X size={16} />
+        </button>
+        <SidebarContents
+          user={user}
+          features={features}
+          tier={tier}
+          portfolioValue={portfolioValue}
+          onNavClick={() => setMobileOpen(false)}
+        />
+      </aside>
+    </>
   )
 }

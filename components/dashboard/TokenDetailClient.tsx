@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Star, Repeat2, Twitter } from 'lucide-react'
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Star, Repeat2, Twitter, Copy, Check as CheckIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { formatCurrency, formatPercent, formatNumber, priceChangeColor, timeAgo } from '@/lib/utils'
@@ -45,6 +45,24 @@ export default function TokenDetailClient({ token, history1d, history7d, history
   const [showSwap, setShowSwap] = useState(false)
   const [watchlisted, setWatchlisted] = useState(false)
   const [activeTab, setActiveTab] = useState<'news' | 'community'>('news')
+  const [copied, setCopied] = useState(false)
+
+  const mintAddress = token.platforms?.solana || token.contract_address || null
+
+  function copyAddress() {
+    if (!mintAddress) return
+    navigator.clipboard.writeText(mintAddress).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  function shareOnX() {
+    const price = token.current_price != null ? `$${token.current_price}` : ''
+    const change = change24 >= 0 ? `+${change24.toFixed(2)}%` : `${change24.toFixed(2)}%`
+    const text = `Just checked $${token.symbol?.toUpperCase()} on MoonMap 🌙 ${price} | ${change} 24h\nmoonmap.app`
+    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+  }
 
   const history = period === '1H' ? history1d : period === '7D' ? history7d : history30d
   const chartData = history.map(h => ({ time: h.timestamp, price: h.price, label: formatChartDate(h.timestamp, period) }))
@@ -107,9 +125,25 @@ export default function TokenDetailClient({ token, history1d, history7d, history
             )}
             <a href={`https://www.dexscreener.com/search?q=${token.symbol}`} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:text-violet-400 flex items-center gap-1 transition-colors">DexScreener <ExternalLink size={10} /></a>
             <a href={`https://jup.ag/swap/SOL-${token.symbol?.toUpperCase()}`} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:text-violet-400 flex items-center gap-1 transition-colors">Jupiter <ExternalLink size={10} /></a>
+            {mintAddress && (
+              <button
+                onClick={copyAddress}
+                className="flex items-center gap-1 transition-colors text-xs"
+                style={{ color: copied ? '#34d399' : 'rgba(113,113,122,0.7)' }}
+                title="Copy contract address">
+                {copied ? <CheckIcon size={10} /> : <Copy size={10} />}
+                {copied ? 'Copied!' : `${mintAddress.slice(0, 6)}…${mintAddress.slice(-4)}`}
+              </button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={shareOnX}
+            className="p-2 rounded-lg border transition-colors border-zinc-700 hover:border-sky-500/50 hover:bg-sky-500/10 text-zinc-400 hover:text-sky-400"
+            title="Share on X">
+            <Twitter size={16} />
+          </button>
           <button onClick={toggleWatchlist} className={`p-2 rounded-lg border transition-colors ${watchlisted ? 'border-amber-500/50 bg-amber-500/10 text-amber-400' : 'border-zinc-700 hover:border-zinc-600 text-zinc-400 hover:text-zinc-200'}`}>
             <Star size={16} fill={watchlisted ? 'currentColor' : 'none'} />
           </button>
@@ -170,16 +204,17 @@ export default function TokenDetailClient({ token, history1d, history7d, history
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 10 }}>
               <defs>
-                <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                <linearGradient id="priceGradFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.45}/>
+                  <stop offset="55%" stopColor={color} stopOpacity={0.12}/>
+                  <stop offset="100%" stopColor={color} stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#27272a"/>
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} interval="preserveStartEnd"/>
               <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} tickFormatter={v => `$${v >= 1 ? v.toFixed(2) : v.toFixed(4)}`} width={72}/>
               <Tooltip content={<CustomTooltip />}/>
-              <Area type="monotone" dataKey="price" stroke={color} strokeWidth={2} fill="url(#priceGrad)" dot={false} activeDot={{ r: 4, fill: color }}/>
+              <Area type="monotone" dataKey="price" stroke={color} strokeWidth={2.5} fill="url(#priceGradFill)" dot={false} activeDot={{ r: 5, fill: color, stroke: 'rgba(0,0,0,0.3)', strokeWidth: 2 }}/>
             </AreaChart>
           </ResponsiveContainer>
         ) : (

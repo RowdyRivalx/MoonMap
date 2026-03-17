@@ -1,7 +1,8 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Check, X, Wallet, ExternalLink } from 'lucide-react'
+import { Check, X, Wallet, ExternalLink, ChevronDown } from 'lucide-react'
 
 const MOONSTERS_LOGO    = 'https://moonsters.io/wp-content/uploads/2023/01/moonsters-logo-1.png'
 const MOONSTER_PORTRAIT = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
@@ -79,6 +80,62 @@ const FEATURES = [
   { label: 'Treasury analytics',trial: false, tier1: false, tier2: false, tier3: true  },
   { label: 'Developer metrics', trial: false, tier1: false, tier2: false, tier3: true  },
 ]
+
+const FAQ_ITEMS = [
+  {
+    q: 'What is a Moonster NFT?',
+    a: 'Moonsters are a collection of 5,000 unique NFTs on the Solana blockchain. Each Moonster has different traits — some common, some extraordinarily rare. Holding a Moonster grants you access to MoonMap and unlocks features based on your NFT\'s traits. No staking, no lock-ups — just hold and you\'re in.',
+  },
+  {
+    q: 'Where do I buy a Moonster?',
+    a: 'Moonsters are traded on Tensor Trade and Magic Eden on Solana. Head to tensor.trade/trade/moonsters to browse the collection. Prices vary based on rarity — any Moonster grants Astronaut access, while special traits unlock higher tiers.',
+  },
+  {
+    q: 'Is my wallet safe? Does MoonMap need custody of my assets?',
+    a: 'MoonMap never takes custody of your assets. We only read your wallet\'s NFT holdings to detect your tier — we cannot move, spend, or access any funds. You connect with a standard Solana wallet (Phantom, Backpack, Solflare, etc.) via a read-only signature. Your keys, your coins.',
+  },
+  {
+    q: 'What data sources does MoonMap use?',
+    a: 'MoonMap aggregates data from CoinGecko for live token prices and market data, 180+ crypto news sources for sentiment and news feeds, GitHub for developer activity metrics, and on-chain Solana data for governance and treasury analytics. All data is refreshed in real time or near-real time depending on the source.',
+  },
+  {
+    q: 'Can I cancel or downgrade my access?',
+    a: 'There\'s nothing to cancel — MoonMap has no subscriptions or recurring charges. Your access tier is tied to the NFTs in your wallet. If you sell your Moonster, your tier reverts to Trial the next time you connect. Simply hold to maintain access, sell to relinquish it. No forms, no customer support tickets needed.',
+  },
+]
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div
+      className="border rounded-xl overflow-hidden transition-all duration-200"
+      style={{
+        borderColor: open ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.12)',
+        background: open ? 'rgba(139,92,246,0.05)' : 'rgba(9,9,11,0.6)',
+      }}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
+        aria-expanded={open}>
+        <span className="font-medium text-sm md:text-base" style={{ color: 'rgba(232,228,248,0.9)' }}>{q}</span>
+        <ChevronDown
+          size={16}
+          style={{
+            color: 'rgba(139,92,246,0.7)',
+            flexShrink: 0,
+            transition: 'transform 0.2s ease',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          }} />
+      </button>
+      {open && (
+        <div className="px-5 pb-5">
+          <div className="h-px mb-4" style={{ background: 'rgba(139,92,246,0.12)' }} />
+          <p className="text-sm leading-relaxed font-mono" style={{ color: 'rgba(161,161,170,0.8)' }}>{a}</p>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function Cell({ value, color }: { value: boolean | string; color: string }) {
   if (value === true)  return <Check size={15} style={{ color, margin: '0 auto' }} />
@@ -222,6 +279,22 @@ export default function PricingPage() {
               Get a Moonster <ExternalLink size={14} />
             </a>
           </div>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="px-6 pb-16 max-w-3xl mx-auto">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 mb-5 px-3 py-1.5 rounded-full"
+            style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.22)' }}>
+            <span className="text-xs font-mono" style={{ color: '#a78bfa' }}>FAQ</span>
+          </div>
+          <h2 className="font-monster text-2xl md:text-3xl text-white">Frequently asked questions</h2>
+        </div>
+        <div className="space-y-3">
+          {FAQ_ITEMS.map((item) => (
+            <FaqItem key={item.q} q={item.q} a={item.a} />
+          ))}
         </div>
       </div>
 

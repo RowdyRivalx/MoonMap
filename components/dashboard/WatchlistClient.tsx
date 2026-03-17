@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, Trash2, TrendingUp, TrendingDown, Plus, Search, BarChart2 } from 'lucide-react'
+import { Star, Trash2, TrendingUp, TrendingDown, Plus, Search, BarChart2, Filter } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatPercent, priceChangeColor } from '@/lib/utils'
 import type { DAOToken } from '@/types'
@@ -59,6 +59,7 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
   const [watched, setWatched] = useState<DAOToken[]>(watchedTokens)
   const [suggested, setSuggested] = useState<DAOToken[]>(suggestedTokens)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [filterQuery, setFilterQuery] = useState('')
   const router = useRouter()
 
   // Merge any localStorage-only items (e.g. added while DB was down)
@@ -119,6 +120,14 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
       alert(error)
     }
   }
+
+  // Filtered watchlist by search query
+  const filteredWatched = filterQuery.trim() === ''
+    ? watched
+    : watched.filter(t =>
+        t.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
+        t.symbol.toLowerCase().includes(filterQuery.toLowerCase())
+      )
 
   // Portfolio value summary
   const tokensWithPrice = watched.filter(t => t.current_price > 0)
@@ -200,16 +209,42 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
 
       {watched.length === 0 ? (
         <div className="card p-12 text-center">
-          <Star size={32} className="text-zinc-600 mx-auto mb-4" />
+          {/* Dimly glowing moon illustration */}
+          <div className="relative mx-auto mb-6 w-20 h-20 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full"
+              style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)' }} />
+            <div className="absolute inset-2 rounded-full"
+              style={{ boxShadow: '0 0 28px 8px rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)' }} />
+            <span className="text-5xl select-none" style={{ filter: 'drop-shadow(0 0 12px rgba(139,92,246,0.4))' }}>🌙</span>
+          </div>
           <h2 className="text-lg font-medium mb-2">Your watchlist is empty</h2>
           <p className="text-sm text-zinc-400 mb-6">
-            Add DAO tokens from the Markets page using the ★ star icon.
+            Add tokens from the Markets tab — use the ★ star icon to track any DAO token.
           </p>
           <Link href="/dashboard/markets" className="btn-primary inline-flex items-center gap-2">
             <Search size={14} /> Browse Markets
           </Link>
         </div>
       ) : (
+        <>
+          {/* Search / filter input */}
+          <div className="relative mb-4">
+            <Filter size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'rgba(113,113,122,0.5)' }} />
+            <input
+              type="text"
+              value={filterQuery}
+              onChange={e => setFilterQuery(e.target.value)}
+              placeholder="Filter by name or symbol…"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl"
+              style={{
+                background: 'rgba(12,6,28,0.7)',
+                border: '1px solid rgba(139,92,246,0.2)',
+                color: 'var(--c-text)',
+              }}
+            />
+          </div>
+
         <div className="card overflow-hidden mb-8">
           <table className="w-full text-sm">
             <thead>
@@ -223,7 +258,14 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
               </tr>
             </thead>
             <tbody>
-              {watched.map((token, i) => {
+              {filteredWatched.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-zinc-500">
+                    No tokens match "{filterQuery}"
+                  </td>
+                </tr>
+              ) : null}
+              {filteredWatched.map((token, i) => {
                 const change24 = token.price_change_percentage_24h || 0
                 const change7d = token.price_change_percentage_7d_in_currency || 0
                 const rowBg = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)'
@@ -276,6 +318,7 @@ export default function WatchlistClient({ watchedTokens, watchlistItems, suggest
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Suggested tokens */}

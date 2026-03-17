@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { COLLECTION_ADDRESS, resolveTier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
 const LIMIT = 20
+
+// CIPHER: Solana base58 address validation — 32-44 alphanumeric chars, no 0/O/I/l
+const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+
+function isValidSolanaAddress(addr: string): boolean {
+  return SOLANA_ADDRESS_RE.test(addr)
+}
 
 function parseAsset(asset: any) {
   const name: string = asset.content?.metadata?.name || ''
@@ -28,13 +37,25 @@ function parseAsset(asset: any) {
 }
 
 export async function GET(req: NextRequest) {
+  // CIPHER: require authentication
+  const session = await getServerSession(authOptions)
+  if (!(session?.user as any)?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = req.nextUrl
-  const page = parseInt(searchParams.get('page') || '1', 10)
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10)
+  const page = isNaN(pageRaw) || pageRaw < 1 ? 1 : Math.min(pageRaw, 1000) // CIPHER: clamp page
   const wallet = searchParams.get('wallet') || ''
   const heliusKey = process.env.HELIUS_API_KEY
 
   if (!heliusKey) {
     return NextResponse.json({ error: 'Missing API key' }, { status: 500 })
+  }
+
+  // CIPHER: validate wallet address before forwarding to Helius
+  if (wallet && !isValidSolanaAddress(wallet)) {
+    return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 })
   }
 
   try {

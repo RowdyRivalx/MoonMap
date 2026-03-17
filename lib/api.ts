@@ -8,9 +8,38 @@ const cgHeaders: HeadersInit = process.env.COINGECKO_API_KEY
   ? { 'x-cg-demo-api-key': process.env.COINGECKO_API_KEY }
   : {}
 
+// ─── Module-level in-memory cache ────────────────────────────────────────────
+// Avoids hammering external APIs on every request when Next.js fetch cache
+// is bypassed (e.g., during ISR or when cache: 'no-store' is in scope).
+
+interface CacheEntry<T> {
+  data: T
+  expiresAt: number
+}
+
+const memCache = new Map<string, CacheEntry<any>>()
+
+function memGet<T>(key: string): T | null {
+  const entry = memCache.get(key)
+  if (!entry) return null
+  if (Date.now() > entry.expiresAt) {
+    memCache.delete(key)
+    return null
+  }
+  return entry.data as T
+}
+
+function memSet<T>(key: string, data: T, ttlMs: number): void {
+  memCache.set(key, { data, expiresAt: Date.now() + ttlMs })
+}
+
 // ─── DAO Token List ──────────────────────────────────────────────────────────
 
 export async function getDAOTokens(ids: string[]): Promise<DAOToken[]> {
+  const cacheKey = `daotokens:${ids.slice().sort().join(',')}`
+  const cached = memGet<DAOToken[]>(cacheKey)
+  if (cached) return cached
+
   const params = new URLSearchParams({
     vs_currency: 'usd',
     ids: ids.join(','),
@@ -28,10 +57,12 @@ export async function getDAOTokens(ids: string[]): Promise<DAOToken[]> {
     })
 
     if (!res.ok) {
-      console.error(`CoinGecko markets error: ${res.status}`)
+      console.error(`getDAOTokens: CoinGecko markets error ${res.status} for ids=${ids.join(',')}`)
       return []
     }
-    return res.json()
+    const data: DAOToken[] = await res.json()
+    memSet(cacheKey, data, 60_000) // 60s in-memory TTL
+    return data
   } catch (err) {
     console.error('getDAOTokens fetch failed:', err)
     return []
@@ -96,11 +127,11 @@ export async function getPriceHistory(
   try {
     const res = await fetch(`${COINGECKO_BASE}/coins/${id}/market_chart?${params}`, {
       headers: cgHeaders,
-      next: { revalidate: 300 },
+      next: { revalidate: 60 }, // price history: revalidate every 60s
     })
 
     if (!res.ok) {
-      console.error(`Price history error for ${id}: ${res.status}`)
+      console.error(`getPriceHistory(${id}): CoinGecko error ${res.status}`)
       return []
     }
     const data = await res.json()
@@ -166,42 +197,57 @@ const RSS_FEEDS = [
 // Fetch all RSS feeds and return the full unsorted corpus — no early slice.
 // Callers decide how many articles they want.
 async function getCoinGeckoNews(): Promise<NewsItem[]> {
+  const cacheKey = 'rss:news:all'
+  const cached = memGet<NewsItem[]>(cacheKey)
+  if (cached) return cached
+
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed) => {
       // count=20 requests up to 20 items per feed (rss2json supports this)
       const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`
-      const res = await fetch(url, { next: { revalidate: 300 } })
-      if (!res.ok) return []
-      const data = await res.json()
-      if (data.status !== 'ok' || !data.items?.length) return []
-      const feedTitle = data.feed?.title || 'Crypto News'
-      return data.items
-        .filter((a: any) => a.title && a.link)
-        .map((a: any, i: number) => {
-          let domain = ''
-          try { domain = new URL(a.link).hostname } catch {}
-          return {
-            id: Math.random(),
-            title: a.title,
-            url: a.link,
-            source: { title: feedTitle, domain },
-            published_at: a.pubDate || new Date().toISOString(),
-            created_at: a.pubDate || new Date().toISOString(),
-            votes: { positive: 0, negative: 0, important: 0, liked: 0, disliked: 0, lol: 0, toxic: 0, saved: 0, comments: 0 },
-            kind: 'news' as const,
-            domain,
-            slug: String(i),
-            metadata: { image: a.thumbnail || null, description: a.description?.replace(/<[^>]*>/g, '').slice(0, 200) },
-            currencies: [],
-          }
-        })
+      try {
+        const res = await fetch(url, { next: { revalidate: 300 } }) // news: revalidate every 300s
+        if (!res.ok) {
+          console.error(`getCoinGeckoNews: rss2json error ${res.status} for feed ${feed}`)
+          return []
+        }
+        const data = await res.json()
+        if (data.status !== 'ok' || !data.items?.length) return []
+        const feedTitle = data.feed?.title || 'Crypto News'
+        return data.items
+          .filter((a: any) => a.title && a.link)
+          .map((a: any, i: number) => {
+            let domain = ''
+            try { domain = new URL(a.link).hostname } catch {}
+            return {
+              id: Math.random(),
+              title: a.title,
+              url: a.link,
+              source: { title: feedTitle, domain },
+              published_at: a.pubDate || new Date().toISOString(),
+              created_at: a.pubDate || new Date().toISOString(),
+              votes: { positive: 0, negative: 0, important: 0, liked: 0, disliked: 0, lol: 0, toxic: 0, saved: 0, comments: 0 },
+              kind: 'news' as const,
+              domain,
+              slug: String(i),
+              metadata: { image: a.thumbnail || null, description: a.description?.replace(/<[^>]*>/g, '').slice(0, 200) },
+              currencies: [],
+            }
+          })
+      } catch (err) {
+        console.error(`getCoinGeckoNews: fetch failed for feed ${feed}:`, err)
+        return []
+      }
     })
   )
 
-  return results
+  const allNews = results
     .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
     .flatMap(r => r.value)
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+
+  memSet(cacheKey, allNews, 300_000) // 300s in-memory TTL matches fetch revalidate
+  return allNews
 }
 
 const BULLISH_WORDS = [

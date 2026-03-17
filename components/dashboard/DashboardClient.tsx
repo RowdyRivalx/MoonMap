@@ -124,7 +124,7 @@ export default function DashboardClient({
   }, [tickerTokens.length])
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 pt-14 sm:pt-6 max-w-7xl mx-auto">
       {showSwap && <SwapPanel token={mrocksToken} onClose={() => setShowSwap(false)} />}
 
       {showBanner && (
@@ -170,7 +170,7 @@ export default function DashboardClient({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-semibold">Overview</h1>
           <p className="text-sm text-zinc-400 mt-0.5">Live data · Powered by MoonMap</p>

@@ -40,6 +40,28 @@ export const COIN_TO_MINT: Record<string, string> = {
   atlas: 'ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx',
   polis: 'poLisWXnNRwC6oBu1vHiuKQzFjGL4XDSu4g9qjz9qVk',
   samo: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+  // Tokens in DAO_COINS that trade on Solana DEXes
+  'frax-share': 'F6pRSvPAFb7QHdSBEBxmXNTFpxSMKAJ9THPKVbKQ5B2x',
+  tensor: 'TNSRxcUxoT9xBG3de7A4Jdm2nGsNQ1GLXM3PZKQgHak',
+  kamino: 'KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS',
+  wormhole: '85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ',
+  'star-atlas': 'ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx', // ATLAS token represents star-atlas
+  aurory: 'AURYydfxJib1ZkTir1Jn1J9ECYUtjb6rKQVmtYaixWPP',
+  cope: '8HGyAAB1yoM1ttS7pXjHMa3dukTFGQggnFFH3hJZgzQh',
+  'media-network': 'zdgSXCDyaXcRLV6WcB7c9rHBbBVqGCcZZkXCeFFbKWU',
+  oxygen: 'oxygWi4Let1oFdSPu4PdHrpREcIbuYBILJhLRNMQ3fU',
+  portals: 'FpCMFDFGYotvufJ7HrFHsWEiiQCGbkLCtwHiDnh7o28Q',
+  metaplex: 'METAewgxyPbgwsseH8T16a39CQ5VyVxZi9zXiDPY18m',
+  // New Solana DeFi tokens
+  solend: 'SLNDpmoWTVADgEdndyvWzroNL7zSi1dF9PC3xHGtPwp',
+  'mango-markets': 'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac',
+  mngo: 'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac',
+  saber: 'Saber2gLauYim4Mvftnrasomsv6NvAuncvMEZwcLpD1',
+  'hubble-protocol': 'HBB111SCo9jkCejsZfz8Ec8nH7T6THF8KEKSnvwT6XK6',
+  'mean-dao': 'MEANeD3XDdUmNMsRGjASkSWdC8prLYsoRJ61pPeHctD',
+  nosana: 'nosXBVoaCTtYdLvKY6Csb4AC8JCdQKKAaWYtx2ZMoo7',
+  hivemapper: 'hiveMTQVAt27xFPqZJbCBa2YujGDdxjjwErqXJgz6yB',
+  'shadow-token': 'SHDWyBxihqiCj6YekG2GUr7wqKLeLAMK1gHZck9pL6y',
 }
 
 export const MINT_TO_COIN: Record<string, string> = Object.fromEntries(

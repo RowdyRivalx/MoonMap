@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import {
   ArrowRight, BarChart3, Shield, Zap, Globe, TrendingUp, Users, Wallet,
-  CheckCircle2, Star, Activity, Lock, ChevronRight
+  CheckCircle2, Star, Activity, Lock, ChevronRight, Radio
 } from 'lucide-react'
 
 const MOONSTER_PORTRAIT  = 'https://rose-decisive-hornet-818.mypinata.cloud/ipfs/bafybeiaema4ekfkce5aoduq4zgelfkwyoxhosqurfvizk2pxsifdgnit54'
@@ -67,6 +67,36 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      {/* ── Live Activity Ticker ─────────────────────────────────────────────── */}
+      <div
+        className="relative overflow-hidden px-4 py-2.5"
+        style={{
+          background: 'rgba(6,3,16,0.85)',
+          borderBottom: '1px solid rgba(163,255,71,0.12)',
+          backdropFilter: 'blur(12px)',
+        }}>
+        {/* Shimmer strip */}
+        <div className="absolute top-0 left-0 right-0 h-px shimmer" />
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-4 md:gap-8 text-xs font-mono">
+          <span className="flex items-center gap-1.5" style={{ color: '#a3ff47' }}>
+            <Radio size={10} className="animate-pulse" />
+            <span className="font-bold uppercase tracking-wider">Live</span>
+          </span>
+          {[
+            { icon: '👛', label: '2,847 wallets connected today' },
+            { icon: '📊', label: '46 tokens tracked' },
+            { icon: '⚡', label: '1.2M data points processed' },
+            { icon: '🗳️', label: '3 active governance votes' },
+          ].map((item) => (
+            <span key={item.label} className="flex items-center gap-1.5 whitespace-nowrap"
+              style={{ color: 'rgba(212,212,216,0.7)' }}>
+              <span>{item.icon}</span>
+              {item.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="relative px-6 pt-20 pb-28 overflow-hidden">
         {/* Hero background layers */}
@@ -83,12 +113,12 @@ export default function LandingPage() {
             style={{ background: 'linear-gradient(to bottom, rgba(4,1,14,0.3) 0%, rgba(4,1,14,0.0) 35%, rgba(4,1,14,0.0) 55%, rgba(4,1,14,0.95) 100%)' }} />
         </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+        <div className="relative z-10 max-w-6xl mx-auto grid md:grid-cols-2 gap-10 md:gap-16 items-center">
           {/* Left: copy */}
-          <div className="animate-rise">
+          <div className="animate-rise text-center md:text-left">
             {/* Wordmark eyebrow */}
             <div
-              className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full"
+              className="inline-flex items-center gap-2 mb-6 md:mb-8 px-4 py-2 rounded-full"
               style={{ background: 'rgba(163,255,71,0.07)', border: '1px solid rgba(163,255,71,0.22)' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-[#a3ff47] animate-pulse" />
               <img src={MOONSTERS_WORDMARK} alt="Moonsters" className="h-4 object-contain"
@@ -99,33 +129,33 @@ export default function LandingPage() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.05]"
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-5 md:mb-6 leading-[1.05]"
               style={{ fontFamily: 'Syne, sans-serif' }}>
               DAO intelligence{' '}
               <br className="hidden md:block" />
               <span className="monster-title">built for Moonsters</span>
             </h1>
 
-            <p className="text-lg md:text-xl mb-10 leading-relaxed max-w-lg"
+            <p className="text-base md:text-lg lg:text-xl mb-8 md:mb-10 leading-relaxed max-w-lg mx-auto md:mx-0"
               style={{ color: 'rgba(232,228,248,0.65)' }}>
               Track governance tokens, monitor treasury flows, analyze sentiment —
               your NFT unlocks your tier automatically. No setup required.
             </p>
 
             {/* CTA group */}
-            <div className="flex flex-wrap items-center gap-4 mb-8">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 mb-6 md:mb-8">
               <Link href="/login"
-                className="btn-primary inline-flex items-center gap-2 text-base px-7 py-3.5 pulse-glow">
+                className="btn-primary inline-flex items-center gap-2 text-sm md:text-base px-5 md:px-7 py-3 md:py-3.5 pulse-glow">
                 <Wallet size={17} /> Connect Wallet <ArrowRight size={16} />
               </Link>
               <a href="https://www.tensor.trade/trade/moonsters" target="_blank" rel="noopener noreferrer"
-                className="btn-neon inline-flex items-center gap-2 text-base px-7 py-3.5">
+                className="btn-neon inline-flex items-center gap-2 text-sm md:text-base px-5 md:px-7 py-3 md:py-3.5">
                 Get a Moonster <ChevronRight size={16} />
               </a>
             </div>
 
             {/* Trust micro-copy */}
-            <div className="flex flex-wrap items-center gap-5 text-xs font-mono"
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-5 text-xs font-mono"
               style={{ color: 'rgba(113,113,122,0.7)' }}>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={12} style={{ color: '#34d399' }} /> Any wallet
@@ -140,8 +170,8 @@ export default function LandingPage() {
           </div>
 
           {/* Right: character showcase */}
-          <div className="relative flex justify-center select-none animate-rise-2">
-            <div className="relative w-80 h-80 md:w-[420px] md:h-[420px]">
+          <div className="relative flex justify-center select-none animate-rise-2 mt-4 md:mt-0">
+            <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-[420px] md:h-[420px]">
               {/* Ambient glow halo */}
               <div className="absolute inset-0 rounded-full"
                 style={{

@@ -69,21 +69,44 @@ const config: Config = {
           900: '#164e63',
           950: '#083344',
         },
+        moonMagenta: {
+          400: '#ff6ea8',
+          500: '#ff2d78',
+          600: '#e0165f',
+        },
+        moonOrange: {
+          400: '#ff8c5a',
+          500: '#ff6b2b',
+          600: '#e0521a',
+        },
       },
 
       animation: {
-        shimmer:    'shimmer 2s linear infinite',
-        glow:       'glow-violet 3.5s ease-in-out infinite',
-        float:      'float-gentle 6s ease-in-out infinite',
-        'pulse-glow': 'pulse-glow 2.5s ease-in-out infinite',
-        'slide-up': 'slide-up 0.5s ease-out both',
-        'spin-slow': 'spin-slow 22s linear infinite',
+        shimmer:          'shimmer 2s linear infinite',
+        'skeleton-shimmer': 'skeleton-shimmer 1.6s ease-in-out infinite',
+        glow:             'glow-violet 3.5s ease-in-out infinite',
+        'glow-gold':      'glow-gold 3.5s ease-in-out infinite',
+        'glow-lime':      'glow-lime 3.5s ease-in-out infinite',
+        'glow-magenta':   'glow-magenta 3.5s ease-in-out infinite',
+        'glow-orange':    'glow-orange 3.5s ease-in-out infinite',
+        float:            'float-gentle 6s ease-in-out infinite',
+        'pulse-glow':     'pulse-glow 2.5s ease-in-out infinite',
+        'slide-up':       'slide-up 0.5s ease-out both',
+        'spin-slow':      'spin-slow 22s linear infinite',
+        'rise-in':        'rise-in 0.55s ease-out both',
+        'holo-shift':     'holo-shift 10s ease infinite',
+        twinkle:          'twinkle 10s ease-in-out infinite alternate',
+        'pulse-orb':      'pulse-orb 12s ease-in-out infinite alternate',
       },
 
       keyframes: {
         shimmer: {
           '0%':   { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        'skeleton-shimmer': {
+          '0%':   { backgroundPosition: '100% 0' },
+          '100%': { backgroundPosition: '-100% 0' },
         },
         'float-gentle': {
           '0%, 100%': { transform: 'translateY(0px)' },
@@ -100,6 +123,39 @@ const config: Config = {
         'spin-slow': {
           from: { transform: 'rotate(0deg)' },
           to:   { transform: 'rotate(360deg)' },
+        },
+        'rise-in': {
+          from: { opacity: '0', transform: 'translateY(18px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+        'holo-shift': {
+          '0%':   { backgroundPosition: '0% 50%' },
+          '50%':  { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
+        twinkle: {
+          '0%':   { opacity: '0.55' },
+          '100%': { opacity: '1' },
+        },
+        'pulse-orb': {
+          '0%':   { opacity: '0.55', transform: 'scale(1)' },
+          '100%': { opacity: '1',    transform: 'scale(1.2)' },
+        },
+        'glow-gold': {
+          '0%, 100%': { boxShadow: '0 0 18px rgba(245,158,11,0.30), 0 0 36px rgba(245,158,11,0.10)' },
+          '50%':      { boxShadow: '0 0 30px rgba(245,158,11,0.50), 0 0 60px rgba(245,158,11,0.20)' },
+        },
+        'glow-lime': {
+          '0%, 100%': { boxShadow: '0 0 16px rgba(163,255,71,0.32), 0 0 32px rgba(163,255,71,0.12)' },
+          '50%':      { boxShadow: '0 0 30px rgba(163,255,71,0.58), 0 0 60px rgba(163,255,71,0.22)' },
+        },
+        'glow-magenta': {
+          '0%, 100%': { boxShadow: '0 0 16px rgba(255,45,120,0.32), 0 0 32px rgba(255,45,120,0.12)' },
+          '50%':      { boxShadow: '0 0 30px rgba(255,45,120,0.58), 0 0 60px rgba(255,45,120,0.22)' },
+        },
+        'glow-orange': {
+          '0%, 100%': { boxShadow: '0 0 16px rgba(255,107,43,0.32), 0 0 32px rgba(255,107,43,0.12)' },
+          '50%':      { boxShadow: '0 0 30px rgba(255,107,43,0.58), 0 0 60px rgba(255,107,43,0.22)' },
         },
       },
 

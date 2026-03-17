@@ -7,7 +7,7 @@ import SwapPanel from './SwapPanel'
 import type { DAOToken, UserSubscription } from '@/types'
 import { localWatchlistAdd, localWatchlistRemove, localWatchlistIds, localWatchlistGet } from '@/lib/watchlist-local'
 
-type SortKey = 'market_cap' | 'current_price' | 'price_change_percentage_24h' | 'price_change_percentage_7d_in_currency' | 'total_volume'
+type SortKey = 'name' | 'market_cap' | 'current_price' | 'price_change_percentage_24h' | 'price_change_percentage_7d_in_currency' | 'total_volume'
 type SortDir = 'asc' | 'desc'
 type CategoryFilter = 'All' | 'DeFi' | 'Gaming' | 'NFT' | 'Infra'
 
@@ -157,7 +157,15 @@ export default function MarketsClient({ tokens, subscription }: Props) {
       .filter(t => t.id !== 'mrocks')
       .filter(t => !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.symbol.toLowerCase().includes(search.toLowerCase()))
       .filter(t => category === 'All' || (CATEGORY_MAP[t.id] || 'DeFi') === category)
-      .sort((a, b) => { const va = (a[sortKey] as number) || 0; const vb = (b[sortKey] as number) || 0; return sortDir === 'desc' ? vb - va : va - vb }),
+      .sort((a, b) => {
+        if (sortKey === 'name') {
+          const cmp = a.name.localeCompare(b.name)
+          return sortDir === 'asc' ? cmp : -cmp
+        }
+        const va = (a[sortKey] as number) || 0
+        const vb = (b[sortKey] as number) || 0
+        return sortDir === 'desc' ? vb - va : va - vb
+      }),
   ]
 
   function toggleSort(key: SortKey) {
@@ -189,11 +197,11 @@ export default function MarketsClient({ tokens, subscription }: Props) {
     } finally { setLoadingId(null) }
   }
 
-  const SortHeader = ({ col, label }: { col: SortKey; label: string }) => (
-    <th className="text-right px-4 py-2 text-xs font-medium cursor-pointer hover:text-zinc-300 select-none"
-      style={{ color: 'rgba(113,113,122,0.7)' }}
+  const SortHeader = ({ col, label, align = 'right' }: { col: SortKey; label: string; align?: 'left' | 'right' }) => (
+    <th className={`text-${align} px-4 py-2 text-xs font-medium cursor-pointer hover:text-zinc-300 select-none`}
+      style={{ color: sortKey === col ? '#a78bfa' : 'rgba(113,113,122,0.7)' }}
       onClick={() => toggleSort(col)}>
-      {label} {sortKey === col ? (sortDir === 'desc' ? '↓' : '↑') : ''}
+      {label} {sortKey === col ? (sortDir === 'desc' ? '↓' : '↑') : <span style={{ opacity: 0.3 }}>↕</span>}
     </th>
   )
 
@@ -350,11 +358,28 @@ export default function MarketsClient({ tokens, subscription }: Props) {
             )}
           </span>
         </div>
+        {/* Loading skeleton — shown while tokens list is empty (initial page load) */}
+        {tokens.length === 0 && (
+          <div className="p-4 space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
+                <div className="w-6 h-6 rounded-full flex-shrink-0" style={{ background: 'rgba(39,39,42,0.6)' }} />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 rounded" style={{ background: 'rgba(39,39,42,0.6)', width: `${40 + (i * 13) % 30}%` }} />
+                  <div className="h-2 rounded" style={{ background: 'rgba(39,39,42,0.4)', width: `${20 + (i * 7) % 20}%` }} />
+                </div>
+                <div className="h-3 rounded w-16" style={{ background: 'rgba(39,39,42,0.5)' }} />
+                <div className="h-3 rounded w-12" style={{ background: 'rgba(39,39,42,0.4)' }} />
+                <div className="h-3 rounded w-16 hidden md:block" style={{ background: 'rgba(39,39,42,0.4)' }} />
+              </div>
+            ))}
+          </div>
+        )}
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(39,39,42,0.6)' }}>
               <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'rgba(113,113,122,0.7)' }}>#</th>
-              <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'rgba(113,113,122,0.7)' }}>Token</th>
+              <SortHeader col="name" label="Token" align="left" />
               <SortHeader col="current_price" label="Price" />
               <SortHeader col="price_change_percentage_24h" label="24h" />
               <SortHeader col="price_change_percentage_7d_in_currency" label="7d" />

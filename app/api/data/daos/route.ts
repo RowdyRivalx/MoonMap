@@ -44,12 +44,25 @@ export async function GET(req: NextRequest) {
 
     const sentiment = calculateSentiment(news)
 
-    return NextResponse.json({
-      tokens,
-      news: isPro ? news : news.slice(0, 5),
-      sentiment,
-      tier: sub.tier,
-    })
+    // Strip sparkline data from tokens before sending to client to reduce payload size
+    // (sparkline is large and only needed by dashboard pages that fetch directly)
+    const slimTokens = tokens.map(({ sparkline_in_7d: _sparkline, ...rest }) => rest)
+
+    const limitedNews = isPro ? news : news.slice(0, 5)
+
+    return NextResponse.json(
+      {
+        tokens: slimTokens,
+        news: limitedNews,
+        sentiment,
+        tier: sub.tier,
+      },
+      {
+        headers: {
+          'Cache-Control': 's-maxage=60, stale-while-revalidate=30',
+        },
+      }
+    )
   } catch (err) {
     console.error('DAO data error:', err)
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 })

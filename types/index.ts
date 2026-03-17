@@ -79,6 +79,17 @@ export const DAO_COINS = [
   'stepn', 'star-atlas', 'aurory', 'gmt', 'atlas',
   'polis', 'samo', 'cope', 'media-network', 'oxygen',
   'portals', 'metaplex',
+  // Additional major Solana DeFi tokens
+  'solend',          // Solend — leading Solana lending protocol
+  'mango-markets',   // Mango Markets — leveraged trading & lending on Solana
+  'saber',           // Saber — Solana stableswap AMM
+  'hubble-protocol', // Hubble Protocol — USDH stablecoin on Solana
+  'mean-dao',        // Mean DAO — Solana DeFi banking protocol
+  'nosana',          // Nosana — Solana compute marketplace / DePIN
+  'hivemapper',      // Hivemapper (HONEY) — decentralised mapping on Solana
+  'firedancer',      // Firedancer / Frankendancer validator client token
+  'shadow-token',    // Shadow Drive — Solana decentralised storage
+  'mngo',            // Mango token alias (some CG ids differ)
 ] as const
 
 export const FREE_TIER_LIMIT = 5 // watchlist items

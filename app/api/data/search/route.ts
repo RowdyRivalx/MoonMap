@@ -6,12 +6,43 @@ const cgHeaders: HeadersInit = process.env.COINGECKO_API_KEY
   ? { 'x-cg-demo-api-key': process.env.COINGECKO_API_KEY }
   : {}
 
+// CIPHER: in-memory rate limiter for search endpoint
+const searchRateMap = new Map<string, { count: number; resetAt: number }>()
+const SEARCH_WINDOW_MS = 60_000
+const SEARCH_MAX = 60 // 60 searches per minute per user
+
+function checkSearchRateLimit(key: string): boolean {
+  const now = Date.now()
+  const entry = searchRateMap.get(key)
+  if (!entry || now > entry.resetAt) {
+    searchRateMap.set(key, { count: 1, resetAt: now + SEARCH_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= SEARCH_MAX) return false
+  entry.count++
+  return true
+}
+
+// CIPHER: allow only printable non-control characters in search query
+const SEARCH_QUERY_RE = /^[\w\s\-\.]{2,100}$/
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!(session?.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const sessionUser = session?.user as any
+  if (!sessionUser?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // CIPHER: rate limit search
+  if (!checkSearchRateLimit(`search:${sessionUser.id}`)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
 
   const q = req.nextUrl.searchParams.get('q')?.trim()
   if (!q || q.length < 2) return NextResponse.json({ coins: [] })
+
+  // CIPHER: validate query — reject suspicious patterns
+  if (q.length > 100 || !SEARCH_QUERY_RE.test(q)) {
+    return NextResponse.json({ coins: [] })
+  }
 
   try {
     const res = await fetch(
