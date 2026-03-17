@@ -10,11 +10,10 @@ import { DAO_COINS, FREE_TIER_LIMIT } from '@/types'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const userId = session.user.id
     const sub = await getUserSubscription(userId)
     const isPro = sub.tier === 'tier2' || sub.tier === 'tier3'
 
