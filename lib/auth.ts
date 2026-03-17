@@ -135,11 +135,11 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      session.user.id            = token.id as string
-      session.user.wallet        = token.wallet as string
-      session.user.tier          = token.tier as string
-      session.user.trialActive   = token.trialActive as boolean
-      session.user.trialExpiresAt = token.trialExpiresAt as string
+      ;(session.user as any).id            = token.id as string
+      ;(session.user as any).wallet        = token.wallet as string
+      ;(session.user as any).tier          = token.tier as string
+      ;(session.user as any).trialActive   = token.trialActive as boolean
+      ;(session.user as any).trialExpiresAt = token.trialExpiresAt as string
       return session
     },
   },

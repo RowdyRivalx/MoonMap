@@ -12,7 +12,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const session = await getServerSession(authOptions)
   if (!session?.user) redirect('/login')
 
-  const userId = session.user.id!
+  const userId = (session.user as any).id!
   const subscription = await getUserSubscription(userId)
   const features = getTierFeatures(subscription.tier)
 

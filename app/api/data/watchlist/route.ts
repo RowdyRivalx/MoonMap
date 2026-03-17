@@ -19,7 +19,7 @@ export async function GET() {
   if (!(session?.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const db = await getDb()
   if (!db) return NextResponse.json({ items: [] })
-  const items = await db.watchlistItem.findMany({ where: { userId: session.user.id }, orderBy: { addedAt: 'desc' } })
+  const items = await db.watchlistItem.findMany({ where: { userId: (session.user as any).id }, orderBy: { addedAt: 'desc' } })
   return NextResponse.json({ items })
 }
 
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'Database unavailable' }, { status: 503 })
   const tier = (session.user as any).tier || 'free'
   const features = getTierFeatures(tier)
-  const count = await db.watchlistItem.count({ where: { userId: session.user.id } })
+  const count = await db.watchlistItem.count({ where: { userId: (session.user as any).id } })
   if (count >= features.watchlistLimit) {
     return NextResponse.json({ error: `Watchlist limit reached (${features.watchlistLimit} tokens for your tier).` }, { status: 403 })
   }
   const item = await db.watchlistItem.upsert({
-    where: { userId_coinId: { userId: session.user.id, coinId } },
-    create: { userId: session.user.id, coinId, coinName, coinSymbol },
+    where: { userId_coinId: { userId: (session.user as any).id, coinId } },
+    create: { userId: (session.user as any).id, coinId, coinName, coinSymbol },
     update: {},
   })
   return NextResponse.json({ item }, { status: 201 })
@@ -49,6 +49,6 @@ export async function DELETE(req: NextRequest) {
   const { coinId } = await req.json()
   const db = await getDb()
   if (!db) return NextResponse.json({ success: true })
-  await db.watchlistItem.deleteMany({ where: { userId: session.user.id, coinId } })
+  await db.watchlistItem.deleteMany({ where: { userId: (session.user as any).id, coinId } })
   return NextResponse.json({ success: true })
 }

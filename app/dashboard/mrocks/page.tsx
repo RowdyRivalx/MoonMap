@@ -8,7 +8,7 @@ export const revalidate = 60
 
 export default async function MROCKSPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!(session?.user as any)?.id) redirect('/login')
 
   const [mrocks, historyAll, news] = await Promise.allSettled([
     getMROCKSData(),

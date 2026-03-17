@@ -11,8 +11,8 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
   // First try to get tier from JWT session (works without DB)
   try {
     const session = await getServerSession(authOptions)
-    if (session?.user?.tier) {
-      return { tier: session.user.tier as TierKey, status: 'active' }
+    if ((session?.user as any)?.tier) {
+      return { tier: (session!.user as any).tier as TierKey, status: 'active' }
     }
   } catch {}
 

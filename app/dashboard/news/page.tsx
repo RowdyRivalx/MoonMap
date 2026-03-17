@@ -8,7 +8,7 @@ export const revalidate = 120
 
 export default async function NewsPage() {
   const session = await getServerSession(authOptions)
-  const userId = session!.user!.id!
+  const userId = (session!.user as any).id!
   const subscription = await getUserSubscription(userId)
   const features = { newsFilters: subscription.tier === 'tier2' || subscription.tier === 'tier3' }
 

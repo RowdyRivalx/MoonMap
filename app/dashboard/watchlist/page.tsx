@@ -11,9 +11,9 @@ export const revalidate = 60
 
 export default async function WatchlistPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!(session?.user as any)?.id) redirect('/login')
 
-  const userId = session.user.id
+  const userId = (session.user as any).id
   const [subscription, mrocks] = await Promise.all([
     getUserSubscription(userId),
     getMROCKSData(),

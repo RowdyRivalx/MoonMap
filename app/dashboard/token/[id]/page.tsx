@@ -6,7 +6,7 @@ import TokenDetailClient from '@/components/dashboard/TokenDetailClient'
 
 export default async function TokenPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!(session?.user as any)?.id) redirect('/login')
 
   // Fetch sequentially to avoid rate limits on free CoinGecko tier
   let token, history1d, history7d, history30d, news

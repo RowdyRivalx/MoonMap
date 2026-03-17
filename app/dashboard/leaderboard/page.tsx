@@ -8,7 +8,7 @@ export const revalidate = 300
 
 export default async function LeaderboardPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!(session?.user as any)?.id) redirect('/login')
 
   // Fetch all users with their tiers and watchlist counts
   const users = await db.user.findMany({
@@ -28,7 +28,7 @@ export default async function LeaderboardPage() {
     take: 100,
   })
 
-  const currentUserId = session.user.id
+  const currentUserId = (session.user as any).id
 
   return (
     <LeaderboardClient

@@ -10,14 +10,14 @@ export const revalidate = 0
 
 export default async function PortfolioPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!(session?.user as any)?.id) redirect('/login')
 
   const wallet = (session.user as any).wallet || ''
 
   let watchlist: any[] = []
   try {
     const { db } = await import('@/lib/db')
-    watchlist = await db.watchlistItem.findMany({ where: { userId: session.user.id }, orderBy: { addedAt: 'desc' } })
+    watchlist = await db.watchlistItem.findMany({ where: { userId: (session.user as any).id }, orderBy: { addedAt: 'desc' } })
   } catch {}
 
   const coinIds = ['solana', ...DAO_COINS]
